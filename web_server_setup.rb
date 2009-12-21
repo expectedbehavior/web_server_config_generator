@@ -5,6 +5,37 @@ require 'pp'
 require 'find'
 require 'digest/sha1'
 require 'pathname'
+require 'getoptlong'
+
+opts = GetoptLong.new(*[
+                      [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
+                      ]
+                      )
+
+$ENVS = []
+
+opts.each do |opt, arg|
+  case opt
+  when '--environment'
+    $ENVS << arg
+  else
+    puts <<-STR
+Usage: #{File.basename(__FILE__)} [project dir] [OPTION]
+
+This will generate web server configuration files for your projects.
+
+No arguments = try to generate files for all projects/envs
+
+  -e <env> specify a specific environemnt to generate
+
+  -h \t this help screen
+
+    STR
+    exit 0
+  end
+end
+
+
 
 $projects_dir = File.dirname(File.dirname(File.expand_path(__FILE__)))
 
@@ -19,7 +50,7 @@ $port_pool_size = 10000
 
 FileUtils.cd $projects_dir
 
-possible_project_dirs = Dir["*"]
+possible_project_dirs = ARGV.first ? [ARGV.first] : Dir["*"]
 possible_project_dirs -= [File.basename($web_server_files_dir)]
 possible_project_dirs = possible_project_dirs.select { |filename| FileTest.directory? filename }
 
@@ -69,16 +100,16 @@ end
 
 # find all environments
 environment_map = project_dirs.inject({}) { |m, o| m[o] = find_environments_in_project(o); m }
-environments = environment_map.values.flatten.uniq
 symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
   envs = []
   directory_contents(symlink_dir).each do |link_path|
     envs += find_environments_in_project project_path_from_symlink(link_path)
   end
-  m[symlink_dir] = envs.uniq
+  m[symlink_dir] = $ENVS.any? ? $ENVS : envs.uniq
   m
 end
 environment_map.merge! symlink_env_map
+environments = $ENVS.any? ? $ENVS : environment_map.values.flatten.uniq
 
 # setup web_server_links_dir
 link_target = File.join "..", ".."
