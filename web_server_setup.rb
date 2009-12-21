@@ -11,6 +11,7 @@ opts = GetoptLong.new(*[
                       [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
                       [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
                       [ '--hosts', '-n', GetoptLong::NO_ARGUMENT ],
+                      [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
                       ]
                       )
 
@@ -22,15 +23,20 @@ opts.each do |opt, arg|
     $ENVS << arg
   when '--hosts'
     $PRINT_HOSTS = true
+  when '--create-web-server-files-dir'
+    $CREATE_WEB_SERVER_FILES_DIR = true
   else
     puts <<-STR
-Usage: #{File.basename(__FILE__)} [project dir] [OPTION]
+Usage: #{File.basename(__FILE__)} [project(s) dir] [OPTION]
 
 This will generate web server configuration files for your projects.
 
-No arguments = try to generate files for all projects/envs
+If you supply a project directory we assume you have run this before and will just generate the files for that project.  If you specify your projects directory we will generate the files for all projects found.  Not supplying a directory is the same as supplying your current directory.
+
+No flags = try to generate files for all envs
 
   -e <env> specify a specific environemnt to generate
+  -c       create web_server_files directory (useful the first time you run this script)
 
   -h \t this help screen
 
@@ -38,28 +44,6 @@ No arguments = try to generate files for all projects/envs
     exit 0
   end
 end
-
-
-
-$projects_dir = File.dirname(File.dirname(File.expand_path(__FILE__)))
-
-$web_server_files_dir = File.join($projects_dir, "web_server_files")
-$web_server_links_dir = File.join($web_server_files_dir, "links")
-$web_server_vhost_dir = File.join($web_server_files_dir, "vhost")
-$web_server_vhost_nginx_dir = File.join($web_server_vhost_dir, "nginx")
-$web_server_vhost_nginx_conf = File.join($web_server_vhost_nginx_dir, "projects.conf")
-
-$starting_port = 40000
-$port_pool_size = 10000
-
-FileUtils.cd $projects_dir
-
-possible_project_dirs = ARGV.first ? [ARGV.first] : Dir["*"]
-possible_project_dirs -= [File.basename($web_server_files_dir)]
-possible_project_dirs = possible_project_dirs.select { |filename| FileTest.directory? filename }
-
-project_dirs = []
-symlink_dirs = []
 
 def file_path_split(path)
   return [path] if File.dirname(path) == path
@@ -80,6 +64,45 @@ def symlink_directory?(path)
   contents = directory_contents(path)
   contents.any? and contents.all? { |p| FileTest.symlink? p }
 end
+
+def projects_directory?(path)
+  directory_contents(path, false).include? $web_server_files_dir_name
+end
+
+def find_projects_dir(path)
+  return path if projects_directory? path
+  find_projects_dir(File.dirname(path)) unless path == File.dirname(path)
+end
+
+$web_server_files_dir_name = "web_server_files"
+
+project_or_projects_dir = ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd
+if $CREATE_WEB_SERVER_FILES_DIR
+  $projects_dir = project_or_projects_dir
+else
+  unless $projects_dir = find_projects_dir(project_or_projects_dir)
+    puts "couldn't find projects dir from project dir, make sure #{$web_server_files_dir_name} exists"
+    exit 1
+  end
+end
+
+$web_server_files_dir = File.join($projects_dir, $web_server_files_dir_name)
+$web_server_links_dir = File.join($web_server_files_dir, "links")
+$web_server_vhost_dir = File.join($web_server_files_dir, "vhost")
+$web_server_vhost_nginx_dir = File.join($web_server_vhost_dir, "nginx")
+$web_server_vhost_nginx_conf = File.join($web_server_vhost_nginx_dir, "projects.conf")
+
+$starting_port = 40000
+$port_pool_size = 10000
+
+FileUtils.cd $projects_dir
+
+possible_project_dirs = ARGV.first && project_directory?(ARGV.first) ? [ARGV.first] : Dir["*"]
+possible_project_dirs -= [File.basename($web_server_files_dir)]
+possible_project_dirs = possible_project_dirs.select { |filename| FileTest.directory? filename }
+
+project_dirs = []
+symlink_dirs = []
 
 while possible_project_dir = possible_project_dirs.shift
   if project_directory? possible_project_dir
