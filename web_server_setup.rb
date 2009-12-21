@@ -215,15 +215,24 @@ def generate_port_from_project_and_env(project_dir, env)
   $starting_port + (pseudo_random_number % $port_pool_size)
 end
 
+def root_link?(path)
+  path.basename.to_s == "root"
+end
+
+def root_link_target_name_in_symlink_dir(dir)
+  if root_link_path = dir.children.detect { |p| root_link? p }
+    root_realpath = root_link_path.realpath
+    root_app_link_name = dir.children.detect { |p| p.realpath == root_realpath and p != root_link_path }.basename
+  end
+end
+
 def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-  symlink_names = dir.directory_contents(dir, false).map { |p| p.basename.to_s }
-  root_link = symlink_names.delete("root")
-  rewrite_line = if root_link
-                   root_realpath = ProjectDirectory.new(File.join(dir, root_link)).realpath
-                   root_app_link = symlink_names.detect { |s| ProjectDirectory.new(File.join(dir, s)).realpath == root_realpath }
-                   "        rewrite ^/$ /#{root_app_link} redirect;"
+  rewrite_line = if app_link_name = root_link_target_name_in_symlink_dir(dir)
+                   "        rewrite ^/$ /#{app_link_name} redirect;"
                  end
-  symlink_lines = symlink_names.map { |s| "        passenger_base_uri /#{s};\n" }
+  symlink_lines = dir.children.reject { |p| root_link? p }.map do |s|
+    "        passenger_base_uri /#{s.basename};\n"
+  end
   [rewrite_line, symlink_lines]
 end
 
