@@ -59,7 +59,8 @@ def find_environments_in_project(path)
 end
 
 # find all environments
-environments = project_dirs.map { |p| find_environments_in_project(p) }.flatten.uniq
+environment_map = project_dirs.inject({}) { |m, o| m[o] = find_environments_in_project(o); m }
+environments = environment_map.values.flatten.uniq
 
 # setup web_server_links_dir
 link_target = File.join "..", ".."
@@ -125,7 +126,7 @@ list_of_conf_files = []
 project_dirs.each do |p|
   project_vhost_dir = File.join($web_server_vhost_nginx_dir, p)
   FileUtils.mkdir_p project_vhost_dir
-  environments.each do |env|
+  environment_map[p].each do |env|
     project_env_vhost_filename = File.join(project_vhost_dir, "#{env}.conf")
     list_of_conf_files << File.expand_path(project_env_vhost_filename)
     new_contents = generate_conf_file_contents(p, env)
