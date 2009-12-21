@@ -102,6 +102,23 @@ class ProjectDirectory < Pathname
   def project_path_from_symlink
     self.class.new(path).realpath.dirname
   end
+  
+  def without(path)
+    self.to_s.sub(path, '')
+  end
+  
+  def projects_relative_path
+    self.without($projects_dir)
+  end
+
+  def project_config_files_contents
+    config_contents = ""
+    config_dir = File.join(self, "config")
+    Find.find(config_dir) do |path|
+      config_contents << File.open(path) { |f| f.read } if File.file? path
+    end
+    config_contents
+  end
 end
 
 $web_server_files_dir_name = "web_server_files"
@@ -116,24 +133,24 @@ else
   end
 end
 
-$web_server_files_dir = File.join($projects_dir, $web_server_files_dir_name)
-$web_server_links_dir = File.join($web_server_files_dir, "links")
-$web_server_vhost_dir = File.join($web_server_files_dir, "vhost")
-$web_server_vhost_nginx_dir = File.join($web_server_vhost_dir, "nginx")
-$web_server_vhost_nginx_conf = File.join($web_server_vhost_nginx_dir, "projects.conf")
+$web_server_files_dir = $projects_dir + $web_server_files_dir_name
+$web_server_links_dir = $web_server_files_dir + "links"
+$web_server_vhost_dir = $web_server_files_dir + "vhost"
+$web_server_vhost_nginx_dir = $web_server_vhost_dir + "nginx"
+$web_server_vhost_nginx_conf = $web_server_vhost_nginx_dir + "projects.conf"
 
 $starting_port = 40000
 $port_pool_size = 10000
 
 FileUtils.cd $projects_dir
 
-possible_project_dirs = project_or_projects_dir.project_directory? ? [project_or_projects_dir] : project_or_projects_dir.children
-possible_project_dirs -= [File.basename($web_server_files_dir)]
-possible_project_dirs = possible_project_dirs.select { |filename| filename.possible_project_directory? }
-
 project_dirs = []
 symlink_dirs = []
 
+# setup seed dirs
+possible_project_dirs = project_or_projects_dir.project_directory? ? [project_or_projects_dir] : project_or_projects_dir.child_possible_project_directories
+
+# classify and recurse through possiblities
 while possible_project_dir = possible_project_dirs.shift
   if possible_project_dir.project_directory?
     project_dirs << possible_project_dir
@@ -148,24 +165,25 @@ while possible_project_dir = possible_project_dirs.shift
 end
 
 # find all environments
-environment_map = project_dirs.inject({}) { |m, o| m[o] = o.environments; m }
-symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
-  envs = []
-  symlink_dir.directory_contents.each do |link_path|
-    envs += link_path.project_path_from_symlink.environments
+if $ENVS.any?
+  $environment_map = Hash.new($ENVS)
+else
+  $environment_map = project_dirs.inject({}) { |m, o| m[o.basename.to_s] = o.environments; m }
+  symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
+    envs = symlink_dir.children.map { |p| p.realpath.parent.environments }.flatten.uniq
+    m[symlink_dir.basename.to_s] = $ENVS.any? ? $ENVS : envs.uniq
+    m
   end
-  m[symlink_dir] = $ENVS.any? ? $ENVS : envs.uniq
-  m
+  $environment_map.merge! symlink_env_map
 end
-environment_map.merge! symlink_env_map
-environments = $ENVS.any? ? $ENVS : environment_map.values.flatten.uniq
+$environments = $environment_map.values.flatten.uniq
 
 def server_name_from_project_dir_and_env(dir, env)
   "#{File.basename(dir)}_#{env}.local"
 end
 
 if $PRINT_HOSTS
-  environment_map.each do |dir, envs|
+  $environment_map.each do |dir, envs|
     envs.each do |env|
       puts server_name_from_project_dir_and_env(dir, env)
     end
@@ -176,7 +194,7 @@ end
 # setup web_server_links_dir
 link_target = File.join "..", ".."
 FileUtils.mkdir_p $web_server_links_dir
-environments.each do |e|
+$environments.each do |e|
   link_name = File.join($web_server_links_dir, e)
   if File.exist?(link_name)
     if FileTest.symlink?(link_name)
@@ -191,37 +209,28 @@ environments.each do |e|
   end
 end
 
-def project_config_files_contents(project_dir)
-  config_contents = ""
-  config_dir = File.join(project_dir, "config")
-  Find.find(config_dir) do |path|
-    config_contents << File.open(path) { |f| f.read } if File.file? path
-  end
-  config_contents
-end
-
 def generate_port_from_project_and_env(project_dir, env)
-  config = project_config_files_contents(project_dir)
+  config = project_dir.project_config_files_contents
   pseudo_random_number = Digest::SHA1.hexdigest(config + env).hex
   $starting_port + (pseudo_random_number % $port_pool_size)
 end
 
 def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-  symlinks = dir.directory_contents(dir, false)
-  root_link = symlinks.delete("root")
+  symlink_names = dir.directory_contents(dir, false).map { |p| p.basename.to_s }
+  root_link = symlink_names.delete("root")
   rewrite_line = if root_link
                    root_realpath = ProjectDirectory.new(File.join(dir, root_link)).realpath
-                   root_app_link = symlinks.detect { |s| ProjectDirectory.new(File.join(dir, s)).realpath == root_realpath }
+                   root_app_link = symlink_names.detect { |s| ProjectDirectory.new(File.join(dir, s)).realpath == root_realpath }
                    "        rewrite ^/$ /#{root_app_link} redirect;"
                  end
-  symlink_lines = symlinks.map { |s| "        passenger_base_uri /#{s};\n" }
+  symlink_lines = symlink_names.map { |s| "        passenger_base_uri /#{s};\n" }
   [rewrite_line, symlink_lines]
 end
 
 def generate_conf_file_contents(dir, env)
   port = generate_port_from_project_and_env dir, env
   server_name = server_name_from_project_dir_and_env(dir, env)
-  full_path_to_dir = "#{$web_server_links_dir}/#{env}/#{dir}"
+  full_path_to_dir = File.expand_path "#{$web_server_links_dir}/#{env}/#{dir.projects_relative_path}"
   root = if dir.project_directory?
            "#{full_path_to_dir}/public"
          else
@@ -252,7 +261,7 @@ list_of_conf_files = []
 (project_dirs + symlink_dirs).each do |p|
   project_vhost_dir = File.join($web_server_vhost_nginx_dir, p.basename)
   FileUtils.mkdir_p project_vhost_dir
-  environment_map[p].each do |env|
+  $environment_map[p.basename.to_s].each do |env|
     project_env_vhost_filename = File.join(project_vhost_dir, "#{env}.conf")
     list_of_conf_files << File.expand_path(project_env_vhost_filename)
     new_contents = generate_conf_file_contents(p, env)
@@ -274,7 +283,7 @@ end
 
 pp project_dirs
 pp symlink_dirs
-pp environments
+pp $environments
 
 puts "you'll need to make sure this line is in your nginx config, in the http block:"
 puts "  include #{$web_server_vhost_nginx_conf};"
