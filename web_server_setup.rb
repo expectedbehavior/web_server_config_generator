@@ -4,6 +4,7 @@ require 'fileutils'
 require 'pp'
 require 'find'
 require 'digest/sha1'
+require 'pathname'
 
 $projects_dir = File.dirname(File.dirname(File.expand_path(__FILE__)))
 
@@ -36,8 +37,12 @@ def project_directory?(path)
     file_path_split(path).size <= 4 # don't want rails apps that are part of tests or whatever
 end
 
+def directory_contents(path, with_directory = true)
+  Pathname(path).children(with_directory).map { |p| p.to_s }
+end
+
 def symlink_directory?(path)
-  contents = Dir["#{path}/*"]
+  contents = directory_contents(path)
   contents.any? and contents.all? { |p| FileTest.symlink? p }
 end
 
@@ -50,7 +55,7 @@ while possible_project_dir = possible_project_dirs.shift
     # ignore symlinks
   else
     # look in that dir for project directories
-    possible_project_dirs += Dir[possible_project_dir + "/*"].select { |filename| FileTest.directory? filename }
+    possible_project_dirs += directory_contents(possible_project_dir).select { |filename| FileTest.directory? filename }
   end
 end
 
@@ -58,9 +63,22 @@ def find_environments_in_project(path)
   Dir[path + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
 end
 
+def project_path_from_symlink(path)
+  File.dirname Pathname(path).realpath
+end
+
 # find all environments
 environment_map = project_dirs.inject({}) { |m, o| m[o] = find_environments_in_project(o); m }
 environments = environment_map.values.flatten.uniq
+symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
+  envs = []
+  directory_contents(symlink_dir).each do |link_path|
+    envs += find_environments_in_project project_path_from_symlink(link_path)
+  end
+  m[symlink_dir] = envs.uniq
+  m
+end
+environment_map.merge! symlink_env_map
 
 # setup web_server_links_dir
 link_target = File.join "..", ".."
@@ -95,26 +113,41 @@ def generate_port_from_project_and_env(project_dir, env)
   $starting_port + (pseudo_random_number % $port_pool_size)
 end
 
-def generate_conf_file_contents(project_dir, env)
-  port = generate_port_from_project_and_env project_dir, env
-  server_name = "#{File.basename(project_dir)}_#{env}.local"
+def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
+  symlinks = directory_contents(dir, false)
+  root_link = symlinks.delete("root")
+  rewrite_line = if root_link
+                   root_realpath = Pathname(File.join(dir, root_link)).realpath
+                   root_app_link = symlinks.detect { |s| Pathname(File.join(dir, s)).realpath == root_realpath }
+                   "        rewrite ^/$ /#{root_app_link} redirect;"
+                 end
+  symlink_lines = symlinks.map { |s| "        passenger_base_uri /#{s};\n" }
+  [rewrite_line, symlink_lines]
+end
+
+def generate_conf_file_contents(dir, env)
+  port = generate_port_from_project_and_env dir, env
+  server_name = "#{File.basename(dir)}_#{env}.local"
+  full_path_to_dir = "#{$web_server_links_dir}/#{env}/#{dir}"
+  root = if project_directory?(dir)
+           "#{full_path_to_dir}/public"
+         else
+           "#{full_path_to_dir}"
+         end
+  rewrite_line, symlink_lines = rewrite_line_and_symlink_lines_from_symlink_dir(dir)
   <<-END
     server {
         listen #{port};
         listen #{server_name}:80;
         server_name #{server_name};
-        root #{$web_server_links_dir}/#{env}/#{project_dir}/public;
+        root #{root};
         passenger_enabled on;
 
-        # rewrite ^/$ /splash redirect;
+#{rewrite_line}
         rails_env #{env};
         rails_spawn_method conservative;
-         
-        #       passenger_base_uri /splash;
-        #       passenger_base_uri /tshirts;
-        #       passenger_base_uri /calendar;
-        #       passenger_base_uri /projects;
-        #       passenger_base_uri /storedb;
+        
+#{symlink_lines}
         client_max_body_size 100m;
         client_body_timeout   300;
     }
@@ -123,7 +156,7 @@ end
 
 # generate files for each proj/env
 list_of_conf_files = []
-project_dirs.each do |p|
+(project_dirs + symlink_dirs).each do |p|
   project_vhost_dir = File.join($web_server_vhost_nginx_dir, p)
   FileUtils.mkdir_p project_vhost_dir
   environment_map[p].each do |env|
