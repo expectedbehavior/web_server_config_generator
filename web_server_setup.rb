@@ -8,7 +8,9 @@ require 'pathname'
 require 'getoptlong'
 
 opts = GetoptLong.new(*[
+                      [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
                       [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
+                      [ '--hosts', '-n', GetoptLong::NO_ARGUMENT ],
                       ]
                       )
 
@@ -18,6 +20,8 @@ opts.each do |opt, arg|
   case opt
   when '--environment'
     $ENVS << arg
+  when '--hosts'
+    $PRINT_HOSTS = true
   else
     puts <<-STR
 Usage: #{File.basename(__FILE__)} [project dir] [OPTION]
@@ -111,6 +115,19 @@ end
 environment_map.merge! symlink_env_map
 environments = $ENVS.any? ? $ENVS : environment_map.values.flatten.uniq
 
+def server_name_from_project_dir_and_env(dir, env)
+  "#{File.basename(dir)}_#{env}.local"
+end
+
+if $PRINT_HOSTS
+  environment_map.each do |dir, envs|
+    envs.each do |env|
+      puts server_name_from_project_dir_and_env(dir, env)
+    end
+  end
+  exit 0
+end
+
 # setup web_server_links_dir
 link_target = File.join "..", ".."
 FileUtils.mkdir_p $web_server_links_dir
@@ -158,14 +175,14 @@ end
 
 def generate_conf_file_contents(dir, env)
   port = generate_port_from_project_and_env dir, env
-  server_name = "#{File.basename(dir)}_#{env}.local"
+  server_name = server_name_from_project_dir_and_env(dir, env)
   full_path_to_dir = "#{$web_server_links_dir}/#{env}/#{dir}"
   root = if project_directory?(dir)
            "#{full_path_to_dir}/public"
          else
            "#{full_path_to_dir}"
          end
-  rewrite_line, symlink_lines = rewrite_line_and_symlink_lines_from_symlink_dir(dir)
+  rewrite_line, symlink_lines = symlink_directory?(dir) ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
   <<-END
     server {
         listen #{port};
