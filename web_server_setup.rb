@@ -2,6 +2,8 @@
 
 require 'fileutils'
 require 'pp'
+require 'find'
+require 'digest/sha1'
 
 $projects_dir = File.dirname(File.dirname(File.expand_path(__FILE__)))
 
@@ -9,6 +11,10 @@ $web_server_files_dir = File.join($projects_dir, "web_server_files")
 $web_server_links_dir = File.join($web_server_files_dir, "links")
 $web_server_vhost_dir = File.join($web_server_files_dir, "vhost")
 $web_server_vhost_nginx_dir = File.join($web_server_vhost_dir, "nginx")
+$web_server_vhost_nginx_conf = File.join($web_server_vhost_nginx_dir, "projects.conf")
+
+$starting_port = 40000
+$port_pool_size = 10000
 
 FileUtils.cd $projects_dir
 
@@ -73,8 +79,19 @@ environments.each do |e|
   end
 end
 
+def project_config_files_contents(project_dir)
+  config_contents = ""
+  config_dir = File.join(project_dir, "config")
+  Find.find(config_dir) do |path|
+    config_contents << File.open(path) { |f| f.read } if File.file? path
+  end
+  config_contents
+end
+
 def generate_port_from_project_and_env(project_dir, env)
-  84
+  config = project_config_files_contents(project_dir)
+  pseudo_random_number = Digest::SHA1.hexdigest(config + env).hex
+  $starting_port + (pseudo_random_number % $port_pool_size)
 end
 
 def generate_conf_file_contents(project_dir, env)
@@ -104,11 +121,13 @@ END
 end
 
 # generate files for each proj/env
+list_of_conf_files = []
 project_dirs.each do |p|
   project_vhost_dir = File.join($web_server_vhost_nginx_dir, p)
   FileUtils.mkdir_p project_vhost_dir
   environments.each do |env|
     project_env_vhost_filename = File.join(project_vhost_dir, "#{env}.conf")
+    list_of_conf_files << File.expand_path(project_env_vhost_filename)
     new_contents = generate_conf_file_contents(p, env)
     if File.exist? project_env_vhost_filename
       old_contents = File.open(project_env_vhost_filename) { |f| f.read }
@@ -121,6 +140,14 @@ project_dirs.each do |p|
   end
 end
 
+File.open($web_server_vhost_nginx_conf, "w") do |f|
+  f.write list_of_conf_files.map { |p| "include #{p};\n" }
+end
+
+
 pp project_dirs
 pp symlink_dirs
 pp environments
+
+puts "you'll need to make sure this line is in your nginx config, in the http block:"
+puts "  include #{$web_server_vhost_nginx_conf};"
