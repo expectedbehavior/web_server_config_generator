@@ -45,42 +45,72 @@ No flags = try to generate files for all envs
   end
 end
 
-def file_path_split(path)
-  return [path] if File.dirname(path) == path
-  file_path_split(File.dirname(path)) + [File.basename(path)]
-end
+class ProjectDirectory < Pathname
+  def path
+    self
+  end
+  
+  def +(other)
+    other = self.class.new(other) unless self.class === other
+    self.class.new(plus(@path, other.to_s))
+  end
 
-def project_directory?(path)
-  File.exist? File.join(path, "config", "environment.rb") and
-    not FileTest.symlink? path and
-    file_path_split(path).size <= 4 # don't want rails apps that are part of tests or whatever
-end
+  def file_path_split
+    return [path] if path.parent.expand_path == path.expand_path
+    self.class.new(path.parent.expand_path).file_path_split + [path.basename]
+  end
 
-def directory_contents(path, with_directory = true)
-  Pathname(path).children(with_directory).map { |p| p.to_s }
-end
+  def project_directory?
+    File.exist? File.join(path, "config", "environment.rb") and
+      not path.symlink?
+  end
 
-def symlink_directory?(path)
-  contents = directory_contents(path)
-  contents.any? and contents.all? { |p| FileTest.symlink? p }
-end
+  def directory_contents(path = self, with_directory = true)
+    self.class.new(path).children(with_directory)
+  end
+  
+  def possible_project_directory?
+    self.directory? and
+      self.basename.to_s != $web_server_files_dir_name and
+      self.file_path_split.size - $projects_dir.file_path_split.size <= 3 # don't want rails apps that are part of tests or whatever
+  end
+  
+  def child_possible_project_directories
+    children.select do |filename|
+      filename.possible_project_directory?
+    end
+  end
 
-def projects_directory?(path)
-  directory_contents(path, false).include? $web_server_files_dir_name
-end
+  def symlink_directory?
+    contents = directory_contents(path)
+    contents.any? and contents.all? { |p| FileTest.symlink? p }
+  end
 
-def find_projects_dir(path)
-  return path if projects_directory? path
-  find_projects_dir(File.dirname(path)) unless path == File.dirname(path)
+  def projects_directory?
+    directory_contents(path, false).map { |p| p.to_s }.include? $web_server_files_dir_name
+  end
+
+  def find_projects_dir
+    return path if path.projects_directory?
+    self.parent.expand_path.find_projects_dir unless path.parent.expand_path == path.expand_path
+  end
+
+  def environments
+    Dir[path.to_s + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
+  end
+
+  def project_path_from_symlink
+    self.class.new(path).realpath.dirname
+  end
 end
 
 $web_server_files_dir_name = "web_server_files"
 
-project_or_projects_dir = ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd
+project_or_projects_dir = ProjectDirectory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
 if $CREATE_WEB_SERVER_FILES_DIR
   $projects_dir = project_or_projects_dir
 else
-  unless $projects_dir = find_projects_dir(project_or_projects_dir)
+  unless $projects_dir = project_or_projects_dir.find_projects_dir
     puts "couldn't find projects dir from project dir, make sure #{$web_server_files_dir_name} exists"
     exit 1
   end
@@ -97,40 +127,32 @@ $port_pool_size = 10000
 
 FileUtils.cd $projects_dir
 
-possible_project_dirs = ARGV.first && project_directory?(ARGV.first) ? [ARGV.first] : Dir["*"]
+possible_project_dirs = project_or_projects_dir.project_directory? ? [project_or_projects_dir] : project_or_projects_dir.children
 possible_project_dirs -= [File.basename($web_server_files_dir)]
-possible_project_dirs = possible_project_dirs.select { |filename| FileTest.directory? filename }
+possible_project_dirs = possible_project_dirs.select { |filename| filename.possible_project_directory? }
 
 project_dirs = []
 symlink_dirs = []
 
 while possible_project_dir = possible_project_dirs.shift
-  if project_directory? possible_project_dir
+  if possible_project_dir.project_directory?
     project_dirs << possible_project_dir
-  elsif symlink_directory? possible_project_dir
+  elsif possible_project_dir.symlink_directory?
     symlink_dirs << possible_project_dir
-  elsif FileTest.symlink? possible_project_dir
+  elsif possible_project_dir.symlink?
     # ignore symlinks
   else
     # look in that dir for project directories
-    possible_project_dirs += directory_contents(possible_project_dir).select { |filename| FileTest.directory? filename }
+    possible_project_dirs += possible_project_dir.child_possible_project_directories
   end
 end
 
-def find_environments_in_project(path)
-  Dir[path + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
-end
-
-def project_path_from_symlink(path)
-  File.dirname Pathname(path).realpath
-end
-
 # find all environments
-environment_map = project_dirs.inject({}) { |m, o| m[o] = find_environments_in_project(o); m }
+environment_map = project_dirs.inject({}) { |m, o| m[o] = o.environments; m }
 symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
   envs = []
-  directory_contents(symlink_dir).each do |link_path|
-    envs += find_environments_in_project project_path_from_symlink(link_path)
+  symlink_dir.directory_contents.each do |link_path|
+    envs += link_path.project_path_from_symlink.environments
   end
   m[symlink_dir] = $ENVS.any? ? $ENVS : envs.uniq
   m
@@ -185,11 +207,11 @@ def generate_port_from_project_and_env(project_dir, env)
 end
 
 def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-  symlinks = directory_contents(dir, false)
+  symlinks = dir.directory_contents(dir, false)
   root_link = symlinks.delete("root")
   rewrite_line = if root_link
-                   root_realpath = Pathname(File.join(dir, root_link)).realpath
-                   root_app_link = symlinks.detect { |s| Pathname(File.join(dir, s)).realpath == root_realpath }
+                   root_realpath = ProjectDirectory.new(File.join(dir, root_link)).realpath
+                   root_app_link = symlinks.detect { |s| ProjectDirectory.new(File.join(dir, s)).realpath == root_realpath }
                    "        rewrite ^/$ /#{root_app_link} redirect;"
                  end
   symlink_lines = symlinks.map { |s| "        passenger_base_uri /#{s};\n" }
@@ -200,12 +222,12 @@ def generate_conf_file_contents(dir, env)
   port = generate_port_from_project_and_env dir, env
   server_name = server_name_from_project_dir_and_env(dir, env)
   full_path_to_dir = "#{$web_server_links_dir}/#{env}/#{dir}"
-  root = if project_directory?(dir)
+  root = if dir.project_directory?
            "#{full_path_to_dir}/public"
          else
            "#{full_path_to_dir}"
          end
-  rewrite_line, symlink_lines = symlink_directory?(dir) ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
+  rewrite_line, symlink_lines = dir.symlink_directory? ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
   <<-END
     server {
         listen #{port};
@@ -228,7 +250,7 @@ end
 # generate files for each proj/env
 list_of_conf_files = []
 (project_dirs + symlink_dirs).each do |p|
-  project_vhost_dir = File.join($web_server_vhost_nginx_dir, p)
+  project_vhost_dir = File.join($web_server_vhost_nginx_dir, p.basename)
   FileUtils.mkdir_p project_vhost_dir
   environment_map[p].each do |env|
     project_env_vhost_filename = File.join(project_vhost_dir, "#{env}.conf")
