@@ -12,6 +12,7 @@ opts = GetoptLong.new(*[
                       [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
                       [ '--hosts', '-n', GetoptLong::NO_ARGUMENT ],
                       [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
+                      [ '--verbose', '-v', GetoptLong::NO_ARGUMENT ],
                       ]
                       )
 
@@ -25,6 +26,8 @@ opts.each do |opt, arg|
     $PRINT_HOSTS = true
   when '--create-web-server-files-dir'
     $CREATE_WEB_SERVER_FILES_DIR = true
+  when '--verbose'
+    $VERBOSE = true
   else
     puts <<-STR
 Usage: #{File.basename(__FILE__)} [project(s) dir] [OPTION]
@@ -108,7 +111,11 @@ class ProjectDirectory < Pathname
   end
   
   def projects_relative_path
-    self.without($projects_dir)
+    self.without($projects_dir).sub(/^\//, '')
+  end
+  
+  def project_name
+    projects_relative_path.gsub(/\W/, '-')
   end
 
   def project_config_files_contents
@@ -179,7 +186,7 @@ end
 $environments = $environment_map.values.flatten.uniq
 
 def server_name_from_project_dir_and_env(dir, env)
-  "#{File.basename(dir)}_#{env}.local"
+  "#{dir.project_name}_#{env}.local"
 end
 
 if $PRINT_HOSTS
@@ -265,23 +272,27 @@ def generate_conf_file_contents(dir, env)
 END
 end
 
+def write_conf_file(p, env)
+  project_vhost_dir = $web_server_vhost_nginx_dir + p.projects_relative_path
+  project_vhost_dir.mkpath
+  project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
+  new_contents = generate_conf_file_contents(p, env)
+  if project_env_vhost_filename.exist?
+    old_contents = project_env_vhost_filename.read
+    if old_contents != new_contents
+      puts "#{project_env_vhost_filename} exists, but doesn't match"
+    end
+  else
+    File.open(project_env_vhost_filename, "w") { |f| f.write new_contents }
+  end
+  project_env_vhost_filename.expand_path
+end
+
 # generate files for each proj/env
 list_of_conf_files = []
 (project_dirs + symlink_dirs).each do |p|
-  project_vhost_dir = File.join($web_server_vhost_nginx_dir, p.basename)
-  FileUtils.mkdir_p project_vhost_dir
   $environment_map[p.basename.to_s].each do |env|
-    project_env_vhost_filename = File.join(project_vhost_dir, "#{env}.conf")
-    list_of_conf_files << File.expand_path(project_env_vhost_filename)
-    new_contents = generate_conf_file_contents(p, env)
-    if File.exist? project_env_vhost_filename
-      old_contents = File.open(project_env_vhost_filename) { |f| f.read }
-      if old_contents != new_contents
-        puts "#{project_env_vhost_filename} exists, but doesn't match"
-      end
-    else
-      File.open(project_env_vhost_filename, "w") { |f| f.write new_contents }
-    end
+    list_of_conf_files << write_conf_file(p, env)
   end
 end
 
@@ -290,9 +301,9 @@ File.open($web_server_vhost_nginx_conf, "w") do |f|
 end
 
 
-pp project_dirs
-pp symlink_dirs
-pp $environments
+pp project_dirs if $VERBOSE
+pp symlink_dirs if $VERBOSE
+pp $environments if $VERBOSE
 
 puts "you'll need to make sure this line is in your nginx config, in the http block:"
 puts "  include #{$web_server_vhost_nginx_conf};"
