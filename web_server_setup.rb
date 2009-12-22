@@ -203,10 +203,10 @@ end
 if $ENVS.any?
   $environment_map = Hash.new($ENVS)
 else
-  $environment_map = project_dirs.inject({}) { |m, o| m[o.basename.to_s] = o.environments; m }
+  $environment_map = project_dirs.inject({}) { |m, o| m[o.realpath] = o.environments; m }
   symlink_env_map = symlink_dirs.inject({}) do |m, symlink_dir|
     envs = symlink_dir.children.map { |p| p.realpath.parent.environments }.flatten.uniq
-    m[symlink_dir.basename.to_s] = $ENVS.any? ? $ENVS : envs.uniq
+    m[symlink_dir.realpath] = $ENVS.any? ? $ENVS : envs.uniq
     m
   end
   $environment_map.merge! symlink_env_map
@@ -319,7 +319,7 @@ end
 # generate files for each proj/env
 list_of_conf_files = []
 (project_dirs + symlink_dirs).each do |p|
-  $environment_map[p.basename.to_s].each do |env|
+  $environment_map[p.realpath].each do |env|
     list_of_conf_files << write_conf_file(p, env)
   end
 end
