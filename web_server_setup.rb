@@ -13,6 +13,7 @@ opts = GetoptLong.new(*[
                       [ '--hosts', '-n', GetoptLong::NO_ARGUMENT ],
                       [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
                       [ '--verbose', '-v', GetoptLong::NO_ARGUMENT ],
+                      [ '--test-mode', '-t', GetoptLong::NO_ARGUMENT ],
                       ]
                       )
 
@@ -28,6 +29,8 @@ opts.each do |opt, arg|
     $CREATE_WEB_SERVER_FILES_DIR = true
   when '--verbose'
     $VERBOSE = true
+  when '--test-mode'
+    $TEST_MODE = true
   else
     puts <<-STR
 Usage: #{File.basename(__FILE__)} [project(s) dir] [OPTION]
@@ -40,6 +43,7 @@ No flags = try to generate files for all envs
 
   -e <env> specify a specific environemnt to generate
   -c       create web_server_files directory (useful the first time you run this script)
+  -t       test mode; do not modify the FS, just print messsages
 
   -h \t this help screen
 
@@ -126,6 +130,30 @@ class ProjectDirectory < Pathname
     end
     config_contents
   end
+  
+  def mkpath
+    if $TEST_MODE
+      puts "test mode: mkpath #{self}"
+    else
+      super
+    end
+  end
+  
+  def symlink_to_target(target)
+    if $TEST_MODE
+      puts "test mode: symlink_to_target #{self} -> #{target}"
+    else
+      File.symlink target, self.expand_path
+    end
+  end
+  
+  def write(arg)
+    if $TEST_MODE
+      puts "test mode: write #{self}, #{arg.to_s[0, 100]}..."
+    else
+      self.open("w") { |f| f.write arg }
+    end
+  end
 end
 
 $web_server_files_dir_name = "web_server_files"
@@ -200,9 +228,9 @@ end
 
 # setup web_server_links_dir
 link_target = File.join "..", ".."
-FileUtils.mkdir_p $web_server_links_dir
+$web_server_links_dir.mkpath
 $environments.each do |e|
-  link_name = File.join($web_server_links_dir, e)
+  link_name = $web_server_links_dir + e
   if File.exist?(link_name)
     if FileTest.symlink?(link_name)
       unless File.readlink(link_name) == link_target
@@ -212,7 +240,7 @@ $environments.each do |e|
       puts "couldn't make symlink '#{link_name}', something's already there"
     end
   else
-    File.symlink link_target, link_name
+    link_name.symlink_to_target(link_target)
   end
 end
 
@@ -283,7 +311,7 @@ def write_conf_file(p, env)
       puts "#{project_env_vhost_filename} exists, but doesn't match"
     end
   else
-    File.open(project_env_vhost_filename, "w") { |f| f.write new_contents }
+    project_env_vhost_filename.write new_contents
   end
   project_env_vhost_filename.expand_path
 end
@@ -296,9 +324,7 @@ list_of_conf_files = []
   end
 end
 
-File.open($web_server_vhost_nginx_conf, "w") do |f|
-  f.write list_of_conf_files.map { |p| "include #{p};\n" }
-end
+$web_server_vhost_nginx_conf.write(list_of_conf_files.map { |p| "include #{p};\n" })
 
 
 pp project_dirs if $VERBOSE
