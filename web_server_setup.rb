@@ -46,7 +46,7 @@ No flags = try to generate files for all envs
            in this case the supplied (or assumed) directory will be set as the 'projects' directory
   -t       test mode; do not modify the FS, just print messsages
 
-  -h \t this help screen
+  -h       this help screen
 
     STR
     exit 0
