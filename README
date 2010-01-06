@@ -1,0 +1,48 @@
+Web Server Config Generator
+============================================================================
+
+I got tired of setting up vhosts for new rails projects, and jumping through hoops to get vhosts for different environments working under the same webserver.  So, point this script at your projects directory and it'll generate all the necessary nginx config files for you to access all of your projects.
+
+Here's a rundown of how it works:
+
+You've got a projects directory:
+ /Users/me/projects
+
+Inside there you have a bunch of stuff, some of which are rails projects, maybe even some relative root url projects:
+  projects/
+    bouncy_balls/
+    shooter_mc_blasty_pants/
+    lib_intent/
+    drug_wars/
+    super_awesome_site_o_many_apps/
+      bb -> ../bouncy_balls/public
+      pew_pew -> ../shooter_mc_blasty_pants/public
+
+Now, the first time you run this script you'll tell it where your projects directory is by either cd'ing there, or passing the path as the first argument:
+  # web_server_config_generator/web_server_setup.rb /Users/me/projects
+
+It'll prompt you to create a folder full of useful files (which will also let it know that's your projects directory in the future).
+
+In that folder full of useful files ('web_server_files' atm) it will generate some symlinks to allow each project to run in a different environment, as well as an individual config file for each project/environment combination.  You don't really need to worry about all that though because in the end...
+
+The script then prints out a line that you'll copy into your nginx.conf file that takes care of loading up all of your configuration.
+
+The other piece of the puzzle this script takes care of is hostname resolution.  Assuming you have the 'ghost' gem installed you'll be prompted to add all of the generated host names to ghost.
+
+So, once all that's done you can reload nginx and fire up your trusty browser, visiting:
+  http://drug_wars_development.local
+
+And whammy, blammy, it's your app.  Let's have another:
+  http://super_awesome_site_o_many_apps_production.local/shooter_mc_blasty_pants
+
+Wowie, zowie, relative root url stuff works too.
+
+But wait there's more, you're developing along, and you see something weird, and you want to pair up with bob to check it out.  It's a hassle to reproduce, but that's ok, you can just point bob to your box because we're also listening on a generated port number.  A quick look in the folder of useful files and we see drug_wars is running in development on port 45397, so bob can just browse to your machine on that port and bingo, he's looking at the same data as you.
+
+Now you can point your tests at the test environment of an app and run your tests against nginx for speedier testing as well.
+
+And the next time you create a new project?  You can run this script from that project directory, or pass that directory as the first argument and we'll only generate the files for that project.  Of course you can also run from, or pass in, your projects directory again and we'll generate anything that isn't already generated, as well as show you things that have changed.
+
+Relative Root Url Directories
+=======================================================
+In order to tell if we should generate a relative root url configuration file we look for directories that contain only symlinks to projects' public directories.  Additionally, if you'd like visiting the root of that site to go to a particular app you can add a symlink named 'root' that expands to the public directory of a project and we'll add an appropriate rewrite line to that nginx config file.
