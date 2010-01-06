@@ -6,6 +6,8 @@ require 'find'
 require 'digest/sha1'
 require 'pathname'
 require 'getoptlong'
+require 'rubygems'
+require 'highline/import'
 
 opts = GetoptLong.new(*[
                       [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
@@ -50,6 +52,16 @@ No flags = try to generate files for all envs
 
     STR
     exit 0
+  end
+end
+
+def agree( yes_or_no_question, character = nil )
+  ask(yes_or_no_question, lambda { |yn| yn.downcase[0] == ?y}) do |q|
+    q.validate                 = /\Ay(?:es)?|no?\Z/i
+    q.responses[:not_valid]    = 'Please enter "yes" or "no".'
+    q.responses[:ask_on_error] = :question
+    q.character                = character
+    yield q if block_given?
   end
 end
 
@@ -164,8 +176,13 @@ if $CREATE_WEB_SERVER_FILES_DIR
   $projects_dir = project_or_projects_dir
 else
   unless $projects_dir = project_or_projects_dir.find_projects_dir
-    puts "couldn't find projects dir from project dir, make sure #{$web_server_files_dir_name} exists"
-    exit 1
+    puts "couldn't find projects dir from #{project_or_projects_dir}"
+    if agree("set #{project_or_projects_dir} to be your projects directory? [Y/n]") { |q| q.default = "Y"}
+      $projects_dir = project_or_projects_dir
+    else
+      puts "exiting..."
+      exit 1
+    end
   end
 end
 
