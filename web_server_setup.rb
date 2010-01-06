@@ -176,8 +176,8 @@ if $CREATE_WEB_SERVER_FILES_DIR
   $projects_dir = project_or_projects_dir
 else
   unless $projects_dir = project_or_projects_dir.find_projects_dir
-    puts "couldn't find projects dir from #{project_or_projects_dir}"
-    if agree("set #{project_or_projects_dir} to be your projects directory? [Y/n]") { |q| q.default = "Y"}
+    puts "Couldn't find projects dir from #{project_or_projects_dir}"
+    if agree("Set #{project_or_projects_dir} to be your projects directory? [Y/n]") { |q| q.default = "Y"}
       $projects_dir = project_or_projects_dir
     else
       puts "exiting..."
