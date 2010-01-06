@@ -263,7 +263,11 @@ begin
           present_but_incorrect << host
         end
       else
-        added << Host.add(server_name)
+        if $TEST_MODE
+          puts "would have added #{server_name} -> 127.0.0.1"
+        else
+          added << Host.add(server_name)
+        end
       end
     end
     
