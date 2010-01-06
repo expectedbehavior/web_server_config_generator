@@ -12,7 +12,8 @@ require 'highline/import'
 opts = GetoptLong.new(*[
                       [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
                       [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
-                      [ '--hosts', '-n', GetoptLong::NO_ARGUMENT ],
+                      [ '--list-hosts', '-n', GetoptLong::NO_ARGUMENT ],
+                      [ '--add-hosts', '-a', GetoptLong::NO_ARGUMENT ],
                       [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
                       [ '--verbose', '-v', GetoptLong::NO_ARGUMENT ],
                       [ '--test-mode', '-t', GetoptLong::NO_ARGUMENT ],
@@ -25,8 +26,10 @@ opts.each do |opt, arg|
   case opt
   when '--environment'
     $ENVS << arg
-  when '--hosts'
+  when '--list-hosts'
     $PRINT_HOSTS = true
+  when '--add-hosts'
+    $ADD_HOSTS = true
   when '--create-web-server-files-dir'
     $CREATE_WEB_SERVER_FILES_DIR = true
   when '--verbose'
@@ -47,6 +50,9 @@ No flags = try to generate files for all envs
   -c       create web_server_files directory (useful the first time you run this script)
            in this case the supplied (or assumed) directory will be set as the 'projects' directory
   -t       test mode; do not modify the FS, just print messsages
+  -n       list generated hostnames, useful for setting up the hosts file on your own
+  -a       add ghost entries for generated hostnames, requires ghost gem
+  -v       verbose
 
   -h       this help screen
 
@@ -302,7 +308,7 @@ end
 
 begin
   require 'ghost'
-  if agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+  if $ADD_HOSTS || agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
     current_hosts = Host.list
     already_correct = []
     added = []
