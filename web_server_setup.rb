@@ -235,14 +235,62 @@ def server_name_from_project_dir_and_env(dir, env)
   "#{dir.project_name}_#{env}.local"
 end
 
-if $PRINT_HOSTS
-  $environment_map.each do |dir, envs|
-    envs.each do |env|
-      puts server_name_from_project_dir_and_env(dir, env)
+def server_names
+  $environment_map.map do |dir, envs|
+    envs.map do |env|
+      server_name_from_project_dir_and_env(dir, env)
     end
-  end
+  end.flatten
+end
+
+if $PRINT_HOSTS
+  puts server_names.join("\n")
   exit 0
 end
+
+begin
+  require 'ghost'
+  if agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+    current_hosts = Host.list
+    already_correct = []
+    added = []
+    present_but_incorrect = []
+    server_names.each do |server_name|
+      if host = current_hosts.detect { |h| h.name == server_name }
+        if host.ip == "127.0.0.1"
+          already_correct << host
+        else
+          present_but_incorrect << host
+        end
+      else
+        host = Host.add(server_name)
+        added << host
+      end
+    end
+    
+    if already_correct.size > 0
+      puts "\n#{already_correct.size} hosts were already setup correctly"
+      puts
+    end
+    
+    if added.size > 0
+      puts "The following hostnames were added for 127.0.0.1:"
+      puts added.map { |h| "  #{h.name}\n" }
+      puts
+    end
+    
+    if present_but_incorrect.size > 0
+      puts "The following hostnames were present, but didn't map to 127.0.0.1:"
+      pad = present_but_incorrect.max{|a,b| a.to_s.length <=> b.to_s.length }.to_s.length
+      puts present_but_incorrect.map { |h| "#{h.name.rjust(pad+2)} -> #{h.ip}\n" }
+      puts
+    end
+    
+  end
+rescue LoadError
+  puts "Couldn't load ghost so I won't add hostname entries for you.  Install the 'ghost' gem, or run me with a -n to get a list of hostnames to setup youself."
+end
+
 
 # setup web_server_links_dir
 link_target = File.join "..", ".."
