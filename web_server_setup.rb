@@ -475,6 +475,11 @@ if $PRINT_HOSTS
   exit 0
 end
 
+
+web_server_setup.setup_webserver_links_dir
+
+web_server_setup.write_conf_files
+
 begin
   require 'ghost'
   if $ADD_HOSTS || agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
@@ -483,11 +488,6 @@ begin
 rescue LoadError
   puts "Couldn't load ghost so I won't add hostname entries for you.  Install the 'ghost' gem, or run me with a -n to get a list of hostnames to setup youself."
 end
-
-
-web_server_setup.setup_webserver_links_dir
-
-web_server_setup.write_conf_files
 
 pp web_server_setup.project_dirs if $VERBOSE
 pp web_server_setup.symlink_dirs if $VERBOSE
