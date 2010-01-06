@@ -263,8 +263,7 @@ begin
           present_but_incorrect << host
         end
       else
-        host = Host.add(server_name)
-        added << host
+        added << Host.add(server_name)
       end
     end
     
