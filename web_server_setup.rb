@@ -169,6 +169,58 @@ class ProjectDirectory < Pathname
   end
 end
 
+class WebServerSetup
+  WEB_SERVER_FILES_DIR_NAME = "web_server_files"
+  REQUIRED_OPTIONS = [
+                      :project_or_projects_dir,
+                     ]
+  def initialize(options)
+    if REQUIRED_OPTIONS.any? { |o| options[o].nil? }
+      raise ArgumentError.new("Please supply the following options to WebServerSetup.new: #{REQUIRED_OPTIONS.inspect}")
+    end
+    REQUIRED_OPTIONS.each do |opt|
+      instance_variable_set("@#{opt}", options[opt])
+    end
+  end
+  
+  def projects_dir
+    @projects_dir ||=
+      if $CREATE_WEB_SERVER_FILES_DIR
+        @project_or_projects_dir
+      else
+        @project_or_projects_dir.find_projects_dir ||
+          begin
+            puts "Couldn't find projects dir from #{@project_or_projects_dir}"
+            if agree("Set #{@project_or_projects_dir} to be your projects directory? [Y/n]") { |q| q.default = "Y"}
+              @project_or_projects_dir
+            else
+              raise "No projects dir, aborting."
+            end
+          end
+      end
+  end
+  
+  def web_server_files_dir
+    projects_dir + WEB_SERVER_FILES_DIR_NAME
+  end
+  
+  def web_server_links_dir
+    web_server_files_dir + "links"
+  end
+  
+  def web_server_vhost_dir
+    web_server_files_dir + "vhost"
+  end
+  
+  def web_server_vhost_nginx_dir
+    web_server_vhost_dir + "nginx"
+  end
+  
+  def web_server_vhost_nginx_conf
+    web_server_vhost_nginx_dir + "projects.conf"
+  end
+end
+
 $web_server_files_dir_name = "web_server_files"
 
 project_or_projects_dir = ProjectDirectory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
@@ -393,7 +445,9 @@ list_of_conf_files = []
   end
 end
 
-$web_server_vhost_nginx_conf.write(list_of_conf_files.map { |p| "include #{p};\n" })
+web_server_setup = WebServerSetup.new(:project_or_projects_dir => project_or_projects_dir)
+
+web_server_setup.web_server_vhost_nginx_conf.write(list_of_conf_files.map { |p| "include #{p};\n" })
 
 
 pp project_dirs if $VERBOSE
