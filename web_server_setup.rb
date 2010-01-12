@@ -183,6 +183,14 @@ module WebServerSetup
         self.open("w") { |f| f.write arg }
       end
     end
+    
+    def read
+      if self.exist?
+        self.open("r") { |f| f.read }
+      else
+        ""
+      end
+    end
   end
 
   class Generator
@@ -215,7 +223,12 @@ module WebServerSetup
           end
         end
 
-        web_server_vhost_nginx_conf.write(list_of_conf_files.map { |p| "include #{p};\n" })
+        current_lines = []
+        web_server_vhost_nginx_conf.read.each_line { |l| current_lines << l }
+        new_lines = current_lines + list_of_conf_files.map { |p| "include #{p};\n" }
+        new_lines.uniq!
+        new_lines.sort!
+        web_server_vhost_nginx_conf.write(new_lines.join)
       end
     end
 
