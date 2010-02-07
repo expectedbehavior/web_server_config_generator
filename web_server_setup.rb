@@ -508,3 +508,15 @@ pp web_server_setup.environments if $VERBOSE
 
 puts "you'll need to make sure this line is in your nginx config, in the http block:"
 puts "  include #{web_server_setup.web_server_vhost_nginx_conf};"
+
+
+if agree("\nRestart nginx? [Y/n]") { |q| q.default = "Y"}
+  nginx_path_options = [
+                        "nginx",
+                        "/opt/nginx/sbin/nginx"
+                       ]
+  nginx = nginx_path_options.detect { |p| system "which #{p} &> /dev/null" }
+  cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
+  puts "running: #{cmd}"
+  system cmd
+end
