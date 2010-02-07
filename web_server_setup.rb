@@ -420,8 +420,8 @@ module WebServerSetup
     end
 
     def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-      @@cache ||= {}
-      @@cache[dir] ||= begin
+      @@rewrite_line_and_symlink_lines_from_symlink_dir_cache ||= {}
+      @@rewrite_line_and_symlink_lines_from_symlink_dir_cache[dir] ||= begin
         rewrite_line = if app_link_name = root_link_target_name_in_symlink_dir(dir)
                          "        rewrite ^/$ /#{app_link_name} redirect;"
                        else
