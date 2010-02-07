@@ -334,9 +334,8 @@ module WebServerSetup
         else
           @project_or_projects_dir.find_projects_dir ||
             begin
-              puts
-              puts "Couldn't find projects dir from #{@project_or_projects_dir}"
-              if agree("Set #{@project_or_projects_dir} to be your projects directory? [Y/n]") { |q| q.default = "Y"}
+              puts "\nI couldn't find an already initialized directory full of projects (probably because this is your first time running me).  I started searching at #{@project_or_projects_dir}.  If that's wrong, exit and run me again supplying the path to your 'projects' directory as the first argument."
+              if agree("\nInitialize #{@project_or_projects_dir} as the directory containing all of your projects? [Y/n]") { |q| q.default = "Y"}
                 @project_or_projects_dir
               else
                 raise "No projects dir, aborting."
