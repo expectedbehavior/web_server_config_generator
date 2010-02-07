@@ -14,6 +14,7 @@ opts = GetoptLong.new(*[
                       [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
                       [ '--list-hosts', '-n', GetoptLong::NO_ARGUMENT ],
                       [ '--add-hosts', '-a', GetoptLong::NO_ARGUMENT ],
+                      [ '--restart-nginx', '-r', GetoptLong::NO_ARGUMENT ],
                       [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
                       [ '--verbose', '-v', GetoptLong::NO_ARGUMENT ],
                       [ '--test-mode', '-t', GetoptLong::NO_ARGUMENT ],
@@ -33,6 +34,8 @@ opts.each do |opt, arg|
     $PRINT_HOSTS = true
   when '--add-hosts'
     $ADD_HOSTS = true
+  when '--restart-nginx'
+    $RESTART_NGINX = true
   when '--create-web-server-files-dir'
     $CREATE_WEB_SERVER_FILES_DIR = true
   when '--verbose'
@@ -55,6 +58,7 @@ No flags = try to generate files for all envs
   -t       test mode; do not modify the FS, just print messsages
   -n       list generated hostnames, useful for setting up the hosts file on your own
   -a       add ghost entries for generated hostnames, requires ghost gem
+  -r       restart nginx at the end
   -v       verbose
 
   -h       this help screen
@@ -338,7 +342,9 @@ module WebServerSetup
     end
     
     def prompt_to_restart_nginx
-      if agree("\nRestart nginx? [Y/n]") { |q| q.default = "Y"}
+      puts
+      if $RESTART_NGINX || agree("Restart nginx? [Y/n]") { |q| q.default = "Y"}
+        puts "Restarting nginx..."
         cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
         puts "running: #{cmd}"
         system cmd
