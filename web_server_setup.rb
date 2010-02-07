@@ -325,6 +325,26 @@ module WebServerSetup
       web_server_vhost_nginx_dir + "projects.conf"
     end
     
+    def check_nginx_conf
+      unless nginx_conf =~ /include.*#{web_server_vhost_nginx_conf}/
+        puts "Warning: You'll need to make sure this line is in your nginx config, in the http block:"
+        puts "  include #{web_server_vhost_nginx_conf};"
+      end
+
+      unless nginx_conf =~ /server_names_hash_bucket_size.*128/
+        puts "\nWarning: Couldn't find the following line in your nginx conf.  It should be in the http block."
+        puts "  server_names_hash_bucket_size 128;"
+      end
+    end
+    
+    def prompt_to_restart_nginx
+      if agree("\nRestart nginx? [Y/n]") { |q| q.default = "Y"}
+        cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
+        puts "running: #{cmd}"
+        system cmd
+      end
+    end
+    
     private
     
     def projects_dir
@@ -479,6 +499,23 @@ END
       project_env_vhost_filename.expand_path
     end
     
+    def nginx_conf_path
+      m = `#{nginx} -t 2>&1`.match /the configuration file (.*) syntax is ok/
+      m[1]
+    end
+    
+    def nginx_conf
+      @nginx_conf ||= File.read(nginx_conf_path)
+    end
+
+    def nginx
+      nginx_path_options = [
+                            "nginx",
+                            "/opt/nginx/sbin/nginx"
+                           ]
+      nginx_path_options.detect { |p| system "which #{p} &> /dev/null" }
+    end
+    
   end
 end
 
@@ -510,17 +547,6 @@ pp web_server_setup.project_dirs if $VERBOSE
 pp web_server_setup.symlink_dirs if $VERBOSE
 pp web_server_setup.environments if $VERBOSE
 
-puts "you'll need to make sure this line is in your nginx config, in the http block:"
-puts "  include #{web_server_setup.web_server_vhost_nginx_conf};"
+web_server_setup.check_nginx_conf
 
-
-if agree("\nRestart nginx? [Y/n]") { |q| q.default = "Y"}
-  nginx_path_options = [
-                        "nginx",
-                        "/opt/nginx/sbin/nginx"
-                       ]
-  nginx = nginx_path_options.detect { |p| system "which #{p} &> /dev/null" }
-  cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
-  puts "running: #{cmd}"
-  system cmd
-end
+web_server_setup.prompt_to_restart_nginx
