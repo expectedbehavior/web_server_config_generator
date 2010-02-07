@@ -327,7 +327,7 @@ module WebServerSetup
     
     def check_nginx_conf
       unless nginx_conf =~ /include.*#{web_server_vhost_nginx_conf}/
-        puts "Warning: You'll need to make sure this line is in your nginx config, in the http block:"
+        puts "\nWarning: You'll need to make sure this line is in your nginx config, in the http block:"
         puts "  include #{web_server_vhost_nginx_conf};"
       end
 
@@ -505,7 +505,12 @@ END
     end
     
     def nginx_conf
-      @nginx_conf ||= File.read(nginx_conf_path)
+      @nginx_conf ||= begin
+                        File.read(nginx_conf_path)
+                      rescue Exception => e
+                        puts "Warning: Couldn't find/read nginx conf"
+                        ""
+                      end
     end
 
     def nginx
