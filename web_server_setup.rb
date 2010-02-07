@@ -152,7 +152,7 @@ module WebServerSetup
     end
     
     def project_name
-      projects_relative_path.gsub(/\W/, '-')
+      projects_relative_path.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
     end
 
     def project_config_files_contents
@@ -425,7 +425,7 @@ module WebServerSetup
     end
 
     def server_name_from_project_dir_and_env(dir, env)
-      "#{dir.project_name}_#{env}.local"
+      "#{dir.project_name}-#{env}.local"
     end
     
     def generate_port_from_project_and_env(project_dir, env)
@@ -547,7 +547,9 @@ web_server_setup.write_conf_files
 
 begin
   require 'ghost'
-  if $ADD_HOSTS || agree("\nSetup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+  puts
+  if $ADD_HOSTS || agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+    puts "Setting up ghost entries..."
     web_server_setup.add_ghost_entries
   end
 rescue LoadError
