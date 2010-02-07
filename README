@@ -30,10 +30,10 @@ The script then prints out a line that you'll copy into your nginx.conf file tha
 The other piece of the puzzle this script takes care of is hostname resolution.  Assuming you have the 'ghost' gem installed you'll be prompted to add all of the generated host names to ghost.
 
 So, once all that's done you can reload nginx and fire up your trusty browser, visiting:
-  http://drug_wars_development.local
+  http://drug-wars-development.local
 
 And whammy, blammy, it's your app.  Let's have another:
-  http://super_awesome_site_o_many_apps_production.local/shooter_mc_blasty_pants
+  http://super-awesome-site-o-many-apps-production.local/shooter_mc_blasty_pants
 
 Wowie, zowie, relative root url stuff works too.
 
