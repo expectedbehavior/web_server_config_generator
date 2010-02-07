@@ -420,13 +420,18 @@ module WebServerSetup
     end
 
     def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-      rewrite_line = if app_link_name = root_link_target_name_in_symlink_dir(dir)
-                       "        rewrite ^/$ /#{app_link_name} redirect;"
-                     end
-      symlink_lines = dir.children.reject { |p| root_link? p }.map do |s|
-        "        passenger_base_uri /#{s.basename};\n"
+      @@cache ||= {}
+      @@cache[dir] ||= begin
+        rewrite_line = if app_link_name = root_link_target_name_in_symlink_dir(dir)
+                         "        rewrite ^/$ /#{app_link_name} redirect;"
+                       else
+                         puts "\nWarning: Couldn't find root link in #{dir}.  Specify a symlink named 'root' that points to one of the other symlinks if you want to be redirected to that app when visiting '/'"
+                       end
+        symlink_lines = dir.children.reject { |p| root_link? p }.map do |s|
+          "        passenger_base_uri /#{s.basename};\n"
+        end
+        [rewrite_line, symlink_lines]
       end
-      [rewrite_line, symlink_lines]
     end
 
     def generate_conf_file_contents(dir, env)
@@ -494,7 +499,7 @@ web_server_setup.write_conf_files
 
 begin
   require 'ghost'
-  if $ADD_HOSTS || agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+  if $ADD_HOSTS || agree("\nSetup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
     web_server_setup.add_ghost_entries
   end
 rescue LoadError
