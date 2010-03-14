@@ -8,13 +8,16 @@ require 'pathname'
 require 'rubygems'
 require 'highline/import'
 require 'optparse'
-require 'YAML'
+require 'yaml'
 
 
 $ENVS = []
 $TEST_MODE = false
 $CREATE_WEB_SERVER_FILES_DIR = false
 $PRINT_HOSTS = false
+$WEB_SERVER_FILES_DIR = nil
+$ADD_HOSTS = nil
+$RESTART_NGINX = nil
 
 opts = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename(__FILE__)} [project(s) dir] [options]"
@@ -44,14 +47,19 @@ opts = OptionParser.new do |opts|
     $CREATE_WEB_SERVER_FILES_DIR = true
   end
 
-  opts.on("-a", "--add-hosts",
-          "add ghost entries for generated hostnames, requires ghost gem") do
-    $ADD_HOSTS = true
+  opts.on("-l", "--web-server-files-dir-location DIR",
+          "put all the web server configuration files in DIR instead of the default location") do |path|
+    $WEB_SERVER_FILES_DIR = File.expand_path(path)
   end
 
-  opts.on("-r", "--restart-nginx",
-          "restart nginx at the end") do
-    $RESTART_NGINX = true
+  opts.on("-a", "--[no-]add-hosts",
+          "add ghost entries for generated hostnames, requires ghost gem") do |b|
+    $ADD_HOSTS = b
+  end
+
+  opts.on("-r", "--[no-]restart-nginx",
+          "restart nginx at the end") do |b|
+    $RESTART_NGINX = b
   end
 
   opts.on("-v", "--verbose",
@@ -384,7 +392,7 @@ module WebServerSetup
     
     def prompt_to_restart_nginx
       puts
-      if $RESTART_NGINX || agree("Restart nginx? [Y/n]") { |q| q.default = "Y"}
+      if $RESTART_NGINX || ($RESTART_NGINX.nil? && agree("Restart nginx? [Y/n]") { |q| q.default = "Y"})
         puts "Restarting nginx..."
         cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
         puts "running: #{cmd}"
@@ -412,7 +420,7 @@ module WebServerSetup
     end
     
     def web_server_files_dir
-      projects_dir + WEB_SERVER_FILES_DIR_NAME
+      $WEB_SERVER_FILES_DIR ? ProjectDirectory.new($WEB_SERVER_FILES_DIR) : (projects_dir + WEB_SERVER_FILES_DIR_NAME)
     end
     
     def web_server_links_dir
@@ -589,7 +597,7 @@ web_server_setup.write_conf_files
 begin
   require 'ghost'
   puts
-  if $ADD_HOSTS || agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"}
+  if $ADD_HOSTS || ($ADD_HOSTS.nil? && agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"})
     puts "Setting up ghost entries..."
     web_server_setup.add_ghost_entries
   end
