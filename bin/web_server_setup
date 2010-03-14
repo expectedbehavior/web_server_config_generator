@@ -587,13 +587,13 @@ options[:environments] = $ENVS if $ENVS.any?
 options[:project_or_projects_dir] = project_or_projects_dir
 web_server_setup = WebServerSetup::Generator.new(options)
 
+web_server_setup.setup_webserver_links_dir
+
 if $PRINT_HOSTS
   puts web_server_setup.server_names.join("\n")
   exit 0
 end
 
-
-web_server_setup.setup_webserver_links_dir
 
 web_server_setup.write_conf_files
 
