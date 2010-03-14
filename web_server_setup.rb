@@ -8,6 +8,7 @@ require 'pathname'
 require 'rubygems'
 require 'highline/import'
 require 'optparse'
+require 'YAML'
 
 
 $ENVS = []
@@ -174,6 +175,24 @@ module WebServerSetup
     
     def project_name
       projects_relative_path.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
+    end
+    
+    def project_webconfig(defaults)
+      @project_webconfig ||= 
+        project_webconfig_proc(File.exist?(self.project_webconfig_path) ?
+                                 YAML.load_file(self.project_webconfig_path) :
+                                 defaults)
+    end
+    
+    def project_webconfig_proc(config)
+      lambda do |env|
+        # lets us have top level defaults in the config, and merge those under env specific options
+        config.dup.merge(config[env] || {})
+      end
+    end
+    
+    def project_webconfig_path
+      File.join(self, ".webconfig.yml")
     end
 
     def project_config_files_contents
