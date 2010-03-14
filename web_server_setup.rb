@@ -5,68 +5,89 @@ require 'pp'
 require 'find'
 require 'digest/sha1'
 require 'pathname'
-require 'getoptlong'
 require 'rubygems'
 require 'highline/import'
+require 'optparse'
 
-opts = GetoptLong.new(*[
-                      [ '--help', '-h', GetoptLong::NO_ARGUMENT ],
-                      [ '--environment', '-e', GetoptLong::REQUIRED_ARGUMENT ],
-                      [ '--list-hosts', '-n', GetoptLong::NO_ARGUMENT ],
-                      [ '--add-hosts', '-a', GetoptLong::NO_ARGUMENT ],
-                      [ '--restart-nginx', '-r', GetoptLong::NO_ARGUMENT ],
-                      [ '--create-web-server-files-dir', '-c', GetoptLong::NO_ARGUMENT ],
-                      [ '--verbose', '-v', GetoptLong::NO_ARGUMENT ],
-                      [ '--test-mode', '-t', GetoptLong::NO_ARGUMENT ],
-                      ]
-                      )
 
 $ENVS = []
 $TEST_MODE = false
 $CREATE_WEB_SERVER_FILES_DIR = false
 $PRINT_HOSTS = false
 
-opts.each do |opt, arg|
-  case opt
-  when '--environment'
-    $ENVS << arg
-  when '--list-hosts'
+opts = OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [project(s) dir] [options]"
+
+  opts.separator ""
+  opts.separator "This will generate web server configuration files for your projects."
+  opts.separator ""
+  opts.separator "If you supply a project directory we assume you have run this before and will just generate the files for that project.  If you specify your projects directory we will generate the files for all projects found.  Not supplying a directory is the same as supplying your current directory."
+  opts.separator ""
+  opts.separator "No flags = try to generate files for all envs"
+  opts.separator ""
+  opts.separator "Specific options:"
+
+  # Mandatory argument.
+  opts.on("-e", "--environment ENV",
+          "specify a specific environment to generate (defaults to all in database.yml)") do |env|
+    $ENVS << env
+  end
+
+  opts.on("-n", "--list-hosts",
+          "list generated hostnames, useful for setting up the hosts file on your own") do
     $PRINT_HOSTS = true
-  when '--add-hosts'
-    $ADD_HOSTS = true
-  when '--restart-nginx'
-    $RESTART_NGINX = true
-  when '--create-web-server-files-dir'
+  end
+
+  opts.on("-c", "--create-web-server-files-dir",
+          "create web_server_files directory (useful the first time you run this script) in this case the supplied (or assumed) directory will be set as the 'projects' directory") do
     $CREATE_WEB_SERVER_FILES_DIR = true
-  when '--verbose'
+  end
+
+  opts.on("-a", "--add-hosts",
+          "add ghost entries for generated hostnames, requires ghost gem") do
+    $ADD_HOSTS = true
+  end
+
+  opts.on("-r", "--restart-nginx",
+          "restart nginx at the end") do
+    $RESTART_NGINX = true
+  end
+
+  opts.on("-v", "--verbose",
+          "verbose") do
     $VERBOSE = true
-  when '--test-mode'
+  end
+
+  opts.on("-t", "--test-mode",
+          "test mode; do not modify the FS, just print messsages") do
     $TEST_MODE = true
-  else
-    puts <<-STR
-Usage: #{File.basename(__FILE__)} [project(s) dir] [OPTION]
+  end
 
-This will generate web server configuration files for your projects.
+#   # Optional argument; multi-line description.
+#   opts.on("-i", "--inplace [EXTENSION]",
+#           "Edit ARGV files in place",
+#           "  (make backup if EXTENSION supplied)") do |ext|
+#     options.inplace = true
+#     options.extension = ext || ''
+#     options.extension.sub!(/\A\.?(?=.)/, ".")  # Ensure extension begins with dot.
+#   end
+  
+#   # Boolean switch.
+#   opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+#     options.verbose = v
+#   end
 
-If you supply a project directory we assume you have run this before and will just generate the files for that project.  If you specify your projects directory we will generate the files for all projects found.  Not supplying a directory is the same as supplying your current directory.
+  opts.separator ""
+  opts.separator "Common options:"
 
-No flags = try to generate files for all envs
-
-  -e <env> specify a specific environment to generate (defaults to all in database.yml)
-  -c       create web_server_files directory (useful the first time you run this script)
-           in this case the supplied (or assumed) directory will be set as the 'projects' directory
-  -t       test mode; do not modify the FS, just print messsages
-  -n       list generated hostnames, useful for setting up the hosts file on your own
-  -a       add ghost entries for generated hostnames, requires ghost gem
-  -r       restart nginx at the end
-  -v       verbose
-
-  -h       this help screen
-
-    STR
-    exit 0
+  # No argument, shows at tail.  This will print an options summary.
+  # Try it and see!
+  opts.on_tail("-h", "--help", "Show this message") do
+    puts opts
+    exit
   end
 end
+
 
 def agree( yes_or_no_question, character = nil )
   ask(yes_or_no_question, lambda { |yn| yn.downcase[0] == ?y}) do |q|
