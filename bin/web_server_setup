@@ -9,6 +9,9 @@ require 'rubygems'
 require 'highline/import'
 require 'optparse'
 require 'yaml'
+$:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
+require 'web_server_config_generator'
+require 'web_server_config_generator/project_directory'
 
 
 $ENVS = []
@@ -115,6 +118,9 @@ module WebServerSetup
   class ProjectDirectory < Pathname
     def self.projects_dir=(d)
       @@projects_dir = d
+    end
+    def self.projects_dir
+      @@projects_dir
     end
     
     def path
@@ -288,7 +294,8 @@ module WebServerSetup
     def server_names
       environment_map.map do |dir, envs|
         envs.map do |env|
-          server_name_from_project_dir_and_env(dir, env)
+          WebServerConfigGenerator::ProjectDirectory.new(dir).server_name_from_env(env)
+#           server_name_from_project_dir_and_env(dir, env)
         end
       end.flatten
     end
@@ -473,16 +480,6 @@ module WebServerSetup
       @environment_map ||= projects_environment_map.merge(symlinks_environment_map)
     end
 
-    def server_name_from_project_dir_and_env(dir, env)
-      "#{dir.project_name}-#{env}.local"
-    end
-    
-    def generate_port_from_project_and_env(project_dir, env)
-      config = project_dir.project_config_files_contents
-      pseudo_random_number = Digest::SHA1.hexdigest(config + env).hex
-      @starting_port + (pseudo_random_number % @port_pool_size)
-    end
-
     def root_link?(path)
       path.basename.to_s == "root"
     end
@@ -508,18 +505,25 @@ module WebServerSetup
         [rewrite_line, symlink_lines]
       end
     end
+    
+    def projects_relative_project_path(dir)
+      File.expand_path(dir).sub(File.expand_path(projects_dir), '')
+    end
 
     def generate_conf_file_contents(dir, env)
-      port = generate_port_from_project_and_env dir, env
-      server_name = server_name_from_project_dir_and_env(dir, env)
-      full_path_to_dir = File.expand_path "#{web_server_links_dir}/#{env}/#{dir.projects_relative_path}"
-      root = if dir.project_directory?
-               "#{full_path_to_dir}/public"
-             else
-               "#{full_path_to_dir}"
-             end
-      rewrite_line, symlink_lines = dir.symlink_directory? ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
-      <<-END
+      if dir.project_directory?
+        WebServerConfigGenerator::ProjectDirectory.new(dir).generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
+      else
+        port = WebServerConfigGenerator::ProjectDirectory.new(dir).generate_port_from_env(env)
+        server_name = WebServerConfigGenerator::ProjectDirectory.new(dir).server_name_from_env(env)
+        full_path_to_dir = File.expand_path "#{web_server_links_dir}/#{env}/#{projects_relative_project_path(dir)}"
+        root = if File.exist?("#{full_path_to_dir}/public")
+                 "#{full_path_to_dir}/public"
+               else
+                 "#{full_path_to_dir}"
+               end
+        rewrite_line, symlink_lines = !File.exist?("#{full_path_to_dir}/public") ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
+        <<-END
     server {
         listen #{port};
         listen #{server_name}:80;
@@ -536,6 +540,7 @@ module WebServerSetup
         client_body_timeout   300;
     }
 END
+      end
     end
 
     def write_conf_file(p, env)
