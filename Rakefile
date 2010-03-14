@@ -24,3 +24,19 @@ Dir['tasks/**/*.rake'].each { |t| load t }
 # TODO - want other tests/tasks run by default? Add them to the list
 # remove_task :default
 # task :default => [:spec, :features]
+
+# hoe's test task globs too much and includes test example app files
+remove_task :test
+Rake::TestTask.new :test do |t|
+  t.libs << "test"
+  t.test_files = FileList['test/test*.rb']
+  t.verbose = true
+end
+
+unless ENV['NO_DEBUG']
+  require 'ruby-debug'
+  Debugger.start
+  rc_file = File.join(File.dirname(File.dirname(__FILE__)), 'rdebugrc')
+  Debugger.run_script rc_file if File.exists?(rc_file)
+end
+
