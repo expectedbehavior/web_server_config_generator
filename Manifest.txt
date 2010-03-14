@@ -3,7 +3,6 @@ Manifest.txt
 PostInstall.txt
 README
 README.rdoc
-README~
 Rakefile
 lib/web_server_config_generator.rb
 script/console
@@ -11,4 +10,4 @@ script/destroy
 script/generate
 test/test_helper.rb
 test/test_web_server_config_generator.rb
-web_server_setup.rb
+bin/web_server_setup
