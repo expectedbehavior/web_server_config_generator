@@ -239,6 +239,7 @@ module WebServerSetup
       if $TEST_MODE
         puts "test mode: write #{self}, #{arg.to_s[0, 100]}..."
       else
+        FileUtils.mkdir_p File.dirname(self)
         self.open("w") { |f| f.write arg }
       end
     end
@@ -445,9 +446,9 @@ module WebServerSetup
     def find_project_and_symlink_dirs
       @project_dirs ||= []
       @symlink_dirs ||= []
-      
+
       # setup seed dirs
-      possible_project_dirs = @project_or_projects_dir.project_directory? ? [@project_or_projects_dir] : @project_or_projects_dir.child_possible_project_directories
+      possible_project_dirs = (@project_or_projects_dir.project_directory? || @project_or_projects_dir.symlink_directory?) ? [@project_or_projects_dir] : @project_or_projects_dir.child_possible_project_directories
 
       # classify and recurse through possiblities
       while possible_project_dir = possible_project_dirs.shift
