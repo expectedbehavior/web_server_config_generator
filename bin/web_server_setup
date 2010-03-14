@@ -582,7 +582,10 @@ end
 
 project_or_projects_dir = WebServerSetup::ProjectDirectory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
 
-web_server_setup = WebServerSetup::Generator.new(:project_or_projects_dir => project_or_projects_dir)
+options = {}
+options[:environments] = $ENVS if $ENVS.any?
+options[:project_or_projects_dir] = project_or_projects_dir
+web_server_setup = WebServerSetup::Generator.new(options)
 
 if $PRINT_HOSTS
   puts web_server_setup.server_names.join("\n")
