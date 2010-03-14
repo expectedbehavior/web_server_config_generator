@@ -17,7 +17,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx"
 #     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS}"
-end
+  end
   
   def test_config_dir_creation_when_specifying_projects_dir
     config_dir = $CONFIG_FILES_DIR # File.join($EXAMPLE_APPS_DIR, "web_server_files")
