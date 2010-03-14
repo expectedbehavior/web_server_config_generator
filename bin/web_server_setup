@@ -89,6 +89,7 @@ opts = OptionParser.new do |opts|
   end
 end
 
+opts.parse!(ARGV)
 
 def agree( yes_or_no_question, character = nil )
   ask(yes_or_no_question, lambda { |yn| yn.downcase[0] == ?y}) do |q|
