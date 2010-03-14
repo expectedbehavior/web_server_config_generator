@@ -8,6 +8,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
                      $STAND_ALONE_APP = File.join($EXAMPLE_APPS_DIR, "stand_alone_app"),
                      $SUB_URI_APP_FOO = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_foo"),
                      $SUB_URI_APP_BAR = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_bar"),
+                     $SUB_URI_APP = File.join($EXAMPLE_APPS_DIR, "sub_uri_apps"),
                     ]
 
     $CONFIG_FILES_DIR = File.join($EXAMPLE_APPS_DIR, "web_server_files")
@@ -70,5 +71,34 @@ HOSTS
     uniq_config_file_names = config_files_paths.map { |p| File.basename(p) }.uniq
     env_conf_file_names = uniq_config_file_names - ["projects.conf"]
     assert env_conf_file_names == ["development.conf"], "expected only development.conf, found: #{env_conf_file_names.inspect}"
+  end
+  
+  def test_generate_sub_uri_conf
+    # -n so no conf files get created
+    cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c -n #{$EXAMPLE_APPS_DIR}"
+    `#{cmd}`
+    
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$SUB_URI_APP}"
+    `#{cmd}`
+    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "development.conf")].first
+    assert_match <<CONF, File.read(config_file_path)
+    server {
+        listen 41912;
+        listen sub-uri-apps-development.local:80;
+        server_name sub-uri-apps-development.local *.sub-uri-apps-development.local;
+        root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/links/development/sub_uri_apps;
+        passenger_enabled on;
+
+        rewrite ^/$ /sub_uri_app_foo redirect;
+        rails_env development;
+        rails_spawn_method conservative;
+        
+        passenger_base_uri /sub_uri_app_bar;
+        passenger_base_uri /sub_uri_app_foo;
+
+        client_max_body_size 100m;
+        client_body_timeout   300;
+    }
+CONF
   end
 end
