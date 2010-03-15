@@ -7,6 +7,11 @@ module WebServerConfigGenerator
       self
     end
     
+    def +(other)
+      other = self.class.new(other) unless self.class === other
+      self.class.new(plus(@path, other.to_s))
+    end
+    
     def file_path_split
       return [path] if path.parent.expand_path == path.expand_path
       self.class.new(path.parent.expand_path).file_path_split + [path.basename]

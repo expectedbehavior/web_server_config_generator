@@ -185,9 +185,9 @@ module WebServerSetup
       self.to_s.sub(path, '')
     end
     
-    def projects_relative_path
-      self.without(@@projects_dir).sub(/^\//, '')
-    end
+#     def projects_relative_path
+#       self.without(@@projects_dir).sub(/^\//, '')
+#     end
     
     def project_name
       projects_relative_path.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
@@ -454,9 +454,9 @@ module WebServerSetup
       # classify and recurse through possiblities
       while possible_project_dir = possible_project_dirs.shift
         if possible_project_dir.project_directory?
-          @project_dirs << possible_project_dir
+          @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(possible_project_dir)
         elsif possible_project_dir.symlink_directory?
-          @symlink_dirs << possible_project_dir
+          @symlink_dirs << WebServerConfigGenerator::SymlinkDirectory.new(possible_project_dir)
         elsif possible_project_dir.symlink?
           # ignore symlinks
         else
@@ -509,22 +509,14 @@ module WebServerSetup
     end
     
     def projects_relative_project_path(dir)
-      File.expand_path(dir).sub(File.expand_path(projects_dir), '')
-    end
-
-    def generate_conf_file_contents(dir, env)
-      if dir.project_directory?
-        WebServerConfigGenerator::ProjectDirectory.new(dir).generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
-      else
-        WebServerConfigGenerator::SymlinkDirectory.new(dir).generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
-      end
+      File.expand_path(dir).sub(File.expand_path(projects_dir), '').sub(/^\//, '')
     end
 
     def write_conf_file(p, env)
-      project_vhost_dir = web_server_vhost_nginx_dir + p.projects_relative_path
+      project_vhost_dir = web_server_vhost_nginx_dir + projects_relative_project_path(p)
       project_vhost_dir.mkpath
       project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
-      new_contents = generate_conf_file_contents(p, env)
+      new_contents = p.generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
       if project_env_vhost_filename.exist?
         old_contents = project_env_vhost_filename.read
         if old_contents != new_contents

@@ -7,8 +7,17 @@ module WebServerConfigGenerator
       self
     end
     
+    def +(other)
+      other = self.class.new(other) unless self.class === other
+      self.class.new(plus(@path, other.to_s))
+    end
+    
     def project_name
       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
+    end
+
+    def environments
+      projects.map { |p| p.environments }.flatten.uniq
     end
     
     def projects
