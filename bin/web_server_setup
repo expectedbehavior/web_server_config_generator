@@ -449,21 +449,6 @@ module WebServerSetup
       end
     end
 
-    def rewrite_line_and_symlink_lines_from_symlink_dir(dir)
-      @@rewrite_line_and_symlink_lines_from_symlink_dir_cache ||= {}
-      @@rewrite_line_and_symlink_lines_from_symlink_dir_cache[dir] ||= begin
-        rewrite_line = if app_link_name = root_link_target_name_in_symlink_dir(dir)
-                         "        rewrite ^/$ /#{app_link_name} redirect;"
-                       else
-                         puts "\nWarning: Couldn't find root link in #{dir}.  Specify a symlink named 'root' that points to one of the other symlinks if you want to be redirected to that app when visiting '/'"
-                       end
-        symlink_lines = dir.children.reject { |p| root_link? p }.map do |s|
-          "        passenger_base_uri /#{s.basename};\n"
-        end
-        [rewrite_line, symlink_lines]
-      end
-    end
-    
     def projects_relative_project_path(dir)
       File.expand_path(dir).sub(File.expand_path(projects_dir), '').sub(/^\//, '')
     end
@@ -508,10 +493,6 @@ module WebServerSetup
     
   end
   
-  class ProjectsDirectory < Pathname
-    def self.projects_directory?(path)
-    end
-  end
 end
 
 
