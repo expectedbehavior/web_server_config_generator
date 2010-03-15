@@ -253,8 +253,7 @@ module WebServerSetup
     def server_names
       environment_map.map do |dir, envs|
         envs.map do |env|
-          WebServerConfigGenerator::ProjectDirectory.new(dir).server_name_from_env(env)
-#           server_name_from_project_dir_and_env(dir, env)
+          dir.server_name_from_env(env)
         end
       end.flatten
     end
