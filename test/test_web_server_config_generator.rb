@@ -67,7 +67,7 @@ HOSTS
     
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development #{$STAND_ALONE_APP}"
     `#{cmd}`
-    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "*.conf")]
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($STAND_ALONE_APP), "development.conf")]
     uniq_config_file_names = config_files_paths.map { |p| File.basename(p) }.uniq
     env_conf_file_names = uniq_config_file_names - ["projects.conf"]
     assert env_conf_file_names == ["development.conf"], "expected only development.conf, found: #{env_conf_file_names.inspect}"
@@ -80,10 +80,10 @@ HOSTS
     
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$SUB_URI_APP}"
     `#{cmd}`
-    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "development.conf")].first
+    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "development.conf")].first
     assert_match <<CONF, File.read(config_file_path)
     server {
-        listen 41912;
+        listen 41439;
         listen sub-uri-apps-development.local:80;
         server_name sub-uri-apps-development.local *.sub-uri-apps-development.local;
         root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/links/development/sub_uri_apps;

@@ -12,6 +12,7 @@ require 'yaml'
 $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 require 'web_server_config_generator'
 require 'web_server_config_generator/project_directory'
+require 'web_server_config_generator/symlink_directory'
 
 
 $ENVS = []
@@ -515,32 +516,7 @@ module WebServerSetup
       if dir.project_directory?
         WebServerConfigGenerator::ProjectDirectory.new(dir).generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
       else
-        port = WebServerConfigGenerator::ProjectDirectory.new(dir).generate_port_from_env(env)
-        server_name = WebServerConfigGenerator::ProjectDirectory.new(dir).server_name_from_env(env)
-        full_path_to_dir = File.expand_path "#{web_server_links_dir}/#{env}/#{projects_relative_project_path(dir)}"
-        root = if File.exist?("#{full_path_to_dir}/public")
-                 "#{full_path_to_dir}/public"
-               else
-                 "#{full_path_to_dir}"
-               end
-        rewrite_line, symlink_lines = !File.exist?("#{full_path_to_dir}/public") ? rewrite_line_and_symlink_lines_from_symlink_dir(dir) : []
-        <<-END
-    server {
-        listen #{port};
-        listen #{server_name}:80;
-        server_name #{server_name} *.#{server_name};
-        root #{root};
-        passenger_enabled on;
-
-#{rewrite_line}
-        rails_env #{env};
-        rails_spawn_method conservative;
-        
-#{symlink_lines}
-        client_max_body_size 100m;
-        client_body_timeout   300;
-    }
-END
+        WebServerConfigGenerator::SymlinkDirectory.new(dir).generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
       end
     end
 
