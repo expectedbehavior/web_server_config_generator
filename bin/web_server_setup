@@ -116,7 +116,7 @@ end
 module WebServerSetup
   WEB_SERVER_FILES_DIR_NAME = "web_server_files"
   
-  class ProjectDirectory < Pathname
+  class Directory < Pathname
     def self.projects_dir=(d)
       @@projects_dir = d
     end
@@ -173,51 +173,8 @@ module WebServerSetup
       self.parent.expand_path.find_projects_dir unless path.parent.expand_path == path.expand_path
     end
 
-    def environments
-      Dir[path.to_s + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
-    end
-
-    def project_path_from_symlink
-      self.class.new(path).realpath.dirname
-    end
-    
     def without(path)
       self.to_s.sub(path, '')
-    end
-    
-#     def projects_relative_path
-#       self.without(@@projects_dir).sub(/^\//, '')
-#     end
-    
-    def project_name
-      projects_relative_path.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
-    end
-    
-    def project_webconfig(defaults)
-      @project_webconfig ||= 
-        project_webconfig_proc(File.exist?(self.project_webconfig_path) ?
-                                 YAML.load_file(self.project_webconfig_path) :
-                                 defaults)
-    end
-    
-    def project_webconfig_proc(config)
-      lambda do |env|
-        # lets us have top level defaults in the config, and merge those under env specific options
-        config.dup.merge(config[env] || {})
-      end
-    end
-    
-    def project_webconfig_path
-      File.join(self, ".webconfig.yml")
-    end
-
-    def project_config_files_contents
-      config_contents = ""
-      config_dir = File.join(self, "config")
-      Find.find(config_dir) do |path|
-        config_contents << File.open(path) { |f| f.read } if File.file? path
-      end
-      config_contents
     end
     
     def mkpath
@@ -271,7 +228,7 @@ module WebServerSetup
       
       @environment_map = Hash.new(options[:environments]) if options[:environments]
 
-      ProjectDirectory.projects_dir = projects_dir
+      Directory.projects_dir = projects_dir
     end
     
     def write_conf_files
@@ -429,7 +386,7 @@ module WebServerSetup
     end
     
     def web_server_files_dir
-      $WEB_SERVER_FILES_DIR ? ProjectDirectory.new($WEB_SERVER_FILES_DIR) : (projects_dir + WEB_SERVER_FILES_DIR_NAME)
+      $WEB_SERVER_FILES_DIR ? Directory.new($WEB_SERVER_FILES_DIR) : (projects_dir + WEB_SERVER_FILES_DIR_NAME)
     end
     
     def web_server_links_dir
@@ -551,10 +508,15 @@ module WebServerSetup
     end
     
   end
+  
+  class ProjectsDirectory < Pathname
+    def self.projects_directory?(path)
+    end
+  end
 end
 
 
-project_or_projects_dir = WebServerSetup::ProjectDirectory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
+project_or_projects_dir = WebServerSetup::Directory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
 
 options = {}
 options[:environments] = $ENVS if $ENVS.any?

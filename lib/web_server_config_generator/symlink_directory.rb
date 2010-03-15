@@ -34,7 +34,7 @@ module WebServerConfigGenerator
     end
     
     def projects_relative_project_path
-      File.expand_path(self).sub(File.expand_path(WebServerSetup::ProjectDirectory.projects_dir), '')
+      File.expand_path(self).sub(File.expand_path(WebServerSetup::Directory.projects_dir), '')
     end
 
     def root_link?(path)
