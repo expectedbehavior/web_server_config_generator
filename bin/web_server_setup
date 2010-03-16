@@ -218,15 +218,9 @@ module WebServerSetup
   end
 
   class Generator
-    REQUIRED_OPTIONS = [
-                        :project_or_projects_dir,
-                       ]
     def initialize(options)
-#       if REQUIRED_OPTIONS.any? { |o| options[o].nil? }
-#         raise ArgumentError.new("Please supply the following options to WebServerSetup.new: #{REQUIRED_OPTIONS.inspect}")
-#       end
-      REQUIRED_OPTIONS.each do |opt|
-        instance_variable_set("@#{opt}", options[opt])
+      options.each do |opt, val|
+        instance_variable_set("@#{opt}", val)
       end
       
       @starting_port = options[:starting_port] || 40000
@@ -540,7 +534,7 @@ module WebServerSetup
 end
 
 
-project_or_projects_dir = ARGV.first ? WebServerSetup::Directory.new(File.expand_path(ARGV.first)) : nil
+project_or_projects_dir = ARGV.first && WebServerSetup::Directory.new(File.expand_path(ARGV.first))
 
 options = {}
 options[:environments] = $ENVS if $ENVS.any?
