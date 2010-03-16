@@ -73,8 +73,8 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
       assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename(app)}"
     end
 
-    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "*.conf")]
-    assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename($SUB_URI_APP)}"
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub-uri-apps-development.local", "*.conf")]
+    assert config_files_paths.any?, "couldn't find any conf files for app sub-uri-apps-development.local"
 
     config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($NO_WEBCONFIG_APP), "*.conf")]
     assert config_files_paths.empty?, "found conf files for app #{File.basename($NO_WEBCONFIG_APP)} when I shouldn't have"
@@ -123,8 +123,6 @@ HOSTS
     hosts = `#{cmd}`
     assert_equal <<HOSTS, hosts
 sub-uri-apps-development.local
-sub-uri-apps-production.local
-sub-uri-apps-test.local
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
@@ -172,21 +170,21 @@ HOSTS
     
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
     `#{cmd}`
-    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "development.conf")].first
+    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub-uri-apps-development.local", "development.conf")].first
     assert_equal <<CONF, File.read(config_file_path)
     server {
-        listen 41439;
+        listen 48166;
         listen sub-uri-apps-development.local:80;
         server_name sub-uri-apps-development.local *.sub-uri-apps-development.local;
-        root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/links/development/sub_uri_apps;
+        root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/sub_uri_apps/sub-uri-apps-development.local;
         passenger_enabled on;
 
-        rewrite ^/$ /sub_uri_app_foo redirect;
+        rewrite ^/$ /foo redirect;
         rails_env development;
         rails_spawn_method conservative;
         
-        passenger_base_uri /sub_uri_app_bar;
-        passenger_base_uri /sub_uri_app_foo;
+        passenger_base_uri /bar;
+        passenger_base_uri /foo;
 
         client_max_body_size 100m;
         client_body_timeout   300;

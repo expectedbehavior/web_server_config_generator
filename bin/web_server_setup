@@ -517,8 +517,8 @@ module WebServerSetup
       while possible_project_dir = possible_project_dirs.shift
         if possible_project_dir.project_directory?
           @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(possible_project_dir)
-        elsif possible_project_dir.symlink_directory?
-          @symlink_dirs << WebServerConfigGenerator::SymlinkDirectory.new(possible_project_dir)
+#         elsif possible_project_dir.symlink_directory?
+#           @symlink_dirs << WebServerConfigGenerator::SymlinkDirectory.new(possible_project_dir)
         elsif possible_project_dir.symlink?
           # ignore symlinks
         else
@@ -533,10 +533,15 @@ module WebServerSetup
     end
     
     def symlinks_environment_map
-      symlink_dirs.inject({}) do |m, symlink_dir|
-        envs = symlink_dir.children.map { |p| p.realpath.parent.environments }.flatten.uniq
-        m[symlink_dir.realpath] = envs.uniq
-        m
+#       symlink_dirs.inject({}) do |m, symlink_dir|
+#         envs = symlink_dir.children.map { |p| p.realpath.parent.environments }.flatten.uniq
+#         m[symlink_dir.realpath] = envs.uniq
+#         m
+#       end
+      sub_uri_app_mapping.inject({}) do |map, server_name_and_env_and_projects|
+        p = WebServerConfigGenerator::SubUriProject.new(server_name_and_env_and_projects[0], server_name_and_env_and_projects[1])
+        map[p] = p.env.to_s
+        map
       end
     end
     

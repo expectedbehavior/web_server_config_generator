@@ -11,50 +11,28 @@ module WebServerConfigGenerator
       @projects = env_and_projects[:projects]
     end
     
-    def path
-      self
-    end
-    
-    def +(other)
-      other = self.class.new(other) unless self.class === other
-      self.class.new(plus(@path, other.to_s))
-    end
-    
-    def project_name
-      self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
-    end
+#     def project_name
+#       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
+#     end
 
     def environments
       projects.map { |p| p.environments }.flatten.uniq
     end
     
-#     def projects
-#       self.children(true).map { |p| ProjectDirectory.new(p.realpath.dirname) }
-#     end
+    def server_name_from_env(env)
+      server_name
+    end
 
     def generate_port_from_env(env)
       pseudo_random_number = projects.inject(0) { |sum, p| sum + p.generate_port_from_env(env) }
       STARTING_PORT + (pseudo_random_number % PORT_POOL_SIZE)
     end
-
-#     def server_name_from_env(env)
-#       "#{self.project_name}-#{env}.local"
-#     end
     
     def projects_relative_project_path
-#       File.expand_path(self).sub(File.expand_path(WebServerSetup::Directory.projects_dir), '')
       server_name
     end
 
-    def root_link?(path)
-      path.basename.to_s == "root"
-    end
-
     def root_link_target_name_in_symlink_dir
-#       if root_link_path = self.children.detect { |p| root_link? p }
-#         root_realpath = root_link_path.realpath
-#         root_app_link_name = self.children.detect { |p| p.realpath == root_realpath and p != root_link_path }.basename
-#       end
       File.basename(projects.detect { |p| p.relative_root_url_root_for_env(env) }.relative_root_url_for_env(env))
     end
 
