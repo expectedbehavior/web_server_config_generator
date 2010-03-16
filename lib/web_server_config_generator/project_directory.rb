@@ -26,7 +26,6 @@ module WebServerConfigGenerator
     end
     
     def project_name
-#       projects_relative_path.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
     end
     

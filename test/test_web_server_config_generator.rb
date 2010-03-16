@@ -13,6 +13,9 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
                      $NO_WEBCONFIG_APP = File.join($EXAMPLE_APPS_DIR, "no_webconfig_app"),
                     ]
 
+    $NO_WEBCONFIG_APP_WEBCONFIG_PATH = File.join($NO_WEBCONFIG_APP, ".webconfig.yml")
+    FileUtils.rm $NO_WEBCONFIG_APP_WEBCONFIG_PATH if File.exist? $NO_WEBCONFIG_APP_WEBCONFIG_PATH
+
     $CONFIG_FILES_DIR = File.join($EXAMPLE_APPS_DIR, "web_server_files")
     FileUtils.rm_r $CONFIG_FILES_DIR if File.exist? $CONFIG_FILES_DIR
 
@@ -23,9 +26,6 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   end
   
   def test_generate_webconfig_yml_for_project
-    yml_path = File.join($NO_WEBCONFIG_APP, ".webconfig.yml")
-    FileUtils.rm yml_path if File.exist? yml_path
-
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$NO_WEBCONFIG_APP}"
     `#{cmd}`
     
@@ -34,7 +34,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
       :production => {:server_name => "no-webconfig-app-production.local", :port => 49339},
       :development => {:server_name => "no-webconfig-app-development.local", :port => 44506}
     }
-    assert_equal expected_config, YAML.load_file(yml_path)
+    assert_equal expected_config, YAML.load_file($NO_WEBCONFIG_APP_WEBCONFIG_PATH)
   end
   
   def test_only_generate_configs_for_projects_with_webconfig_yml
