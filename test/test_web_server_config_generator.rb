@@ -2,6 +2,10 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 require 'yaml'
 require 'pathname'
 
+at_exit do
+  FileUtils.rm "tmp/coverage.data" if File.exist? "tmp/coverage.data"
+end
+
 class TestWebServerConfigGenerator < Test::Unit::TestCase
 
   def setup
@@ -23,6 +27,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     FileUtils.rm_r $CONFIG_FILES_DIR if File.exist? $CONFIG_FILES_DIR
 
     $CMD = File.join(File.dirname(__FILE__), "..", "bin", "web_server_setup")
+    $CMD = "rcov --aggregate tmp/coverage.data #{$CMD} --"
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
   end
@@ -111,7 +116,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   def test_listing_hosts_for_one_app
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n #{$STAND_ALONE_APP}"
     hosts = `#{cmd}`
-    assert_equal <<HOSTS, hosts
+    assert_equal <<HOSTS.sort, hosts.sort
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
@@ -121,7 +126,7 @@ HOSTS
   def test_listing_hosts_for_all_apps
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n"
     hosts = `#{cmd}`
-    assert_equal <<HOSTS, hosts
+    assert_equal <<HOSTS.sort, hosts.sort
 sub-uri-apps-development.local
 stand-alone-app-development.local
 stand-alone-app-production.local
