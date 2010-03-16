@@ -26,6 +26,24 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
   end
   
+  def test_only_generate_conf_for_specific_project
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$STAND_ALONE_APP}"
+    `#{cmd}`
+    ($WEBCONFIG_APPS - [$STAND_ALONE_APP]).each do |app|
+      config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename(app), "*.conf")]
+      assert config_files_paths.empty?, "found conf files for app #{File.basename(app)} when I shouldn't have"
+    end
+
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "*.conf")]
+    assert config_files_paths.empty?, "found conf files for app #{File.basename($SUB_URI_APP)} when I shouldn't have"
+
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($NO_WEBCONFIG_APP), "*.conf")]
+    assert config_files_paths.empty?, "found conf files for app #{File.basename($NO_WEBCONFIG_APP)} when I shouldn't have"
+
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($STAND_ALONE_APP), "*.conf")]
+    assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename($STAND_ALONE_APP)}"
+  end
+  
   def test_only_generate_configs_for_projects_with_webconfig_yml
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
     `#{cmd}`
