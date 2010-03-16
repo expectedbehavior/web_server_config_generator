@@ -65,16 +65,16 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename($STAND_ALONE_APP)}"
   end
   
-  def test_only_generate_configs_for_projects_with_webconfig_yml
+  def test_only_generate_configs_for_projects_with_webconfig_yml_and_generate_for_correct_envs
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
     `#{cmd}`
     $WEBCONFIG_APPS.each do |app|
       config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename(app), "*.conf")]
-      assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename(app)}"
+      assert_equal 3, config_files_paths.size, "didn't find correct number of conf files for app #{File.basename(app)}"
     end
 
     config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub-uri-apps-development.local", "*.conf")]
-    assert config_files_paths.any?, "couldn't find any conf files for app sub-uri-apps-development.local"
+    assert_equal 1, config_files_paths.size, "couldn't find any conf files for app sub-uri-apps-development.local"
 
     config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($NO_WEBCONFIG_APP), "*.conf")]
     assert config_files_paths.empty?, "found conf files for app #{File.basename($NO_WEBCONFIG_APP)} when I shouldn't have"
