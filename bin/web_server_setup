@@ -12,7 +12,6 @@ require 'yaml'
 $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 require 'web_server_config_generator'
 require 'web_server_config_generator/project_directory'
-require 'web_server_config_generator/symlink_directory'
 require 'web_server_config_generator/sub_uri_project'
 
 
@@ -150,9 +149,9 @@ module WebServerSetup
       File.exist? File.join(path, ".webconfig.yml")
     end
 
-    def directory_contents(path = self, with_directory = true)
-      self.class.new(path).children(with_directory)
-    end
+#     def directory_contents(path = self, with_directory = true)
+#       self.class.new(path).children(with_directory)
+#     end
     
     def possible_project_directory?
       self.directory? and
@@ -166,23 +165,23 @@ module WebServerSetup
       end
     end
 
-    def symlink_directory?
-      contents = directory_contents(path)
-      contents.any? and contents.all? { |p| FileTest.symlink? p }
-    end
+#     def symlink_directory?
+#       contents = directory_contents(path)
+#       contents.any? and contents.all? { |p| FileTest.symlink? p }
+#     end
 
-    def projects_directory?
-      directory_contents(path, false).map { |p| p.to_s }.include? WEB_SERVER_FILES_DIR_NAME
-    end
+#     def projects_directory?
+#       directory_contents(path, false).map { |p| p.to_s }.include? WEB_SERVER_FILES_DIR_NAME
+#     end
 
-    def find_projects_dir
-      return path if path.projects_directory?
-      self.parent.expand_path.find_projects_dir unless path.parent.expand_path == path.expand_path
-    end
+#     def find_projects_dir
+#       return path if path.projects_directory?
+#       self.parent.expand_path.find_projects_dir unless path.parent.expand_path == path.expand_path
+#     end
 
-    def without(path)
-      self.to_s.sub(path, '')
-    end
+#     def without(path)
+#       self.to_s.sub(path, '')
+#     end
     
     def mkpath
       if $TEST_MODE
@@ -240,7 +239,7 @@ module WebServerSetup
       FileUtils.cd projects_dir do
         # generate files for each proj/env
         list_of_conf_files = []
-        (project_dirs + symlink_dirs).each do |p|
+        project_dirs.each do |p|
           environment_map[p.realpath].each do |env|
             list_of_conf_files << write_conf_file(p, env)
           end
@@ -416,13 +415,13 @@ module WebServerSetup
         end
     end
     
-    def symlink_dirs
-      @symlink_dirs ||=
-        begin
-          find_project_and_symlink_dirs
-          @symlink_dirs
-        end
-    end
+#     def symlink_dirs
+#       @symlink_dirs ||=
+#         begin
+#           find_project_and_symlink_dirs
+#           @symlink_dirs
+#         end
+#     end
     
     def environments
       @environments ||= environment_map.values.flatten.uniq
@@ -503,7 +502,7 @@ module WebServerSetup
     
     def find_project_and_symlink_dirs
       @project_dirs ||= []
-      @symlink_dirs ||= []
+#       @symlink_dirs ||= []
 
       if @project_or_projects_dir.expand_path != projects_dir.expand_path
         @project_dirs = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir)]
@@ -549,16 +548,16 @@ module WebServerSetup
       @environment_map ||= projects_environment_map.merge(symlinks_environment_map)
     end
 
-    def root_link?(path)
-      path.basename.to_s == "root"
-    end
+#     def root_link?(path)
+#       path.basename.to_s == "root"
+#     end
 
-    def root_link_target_name_in_symlink_dir(dir)
-      if root_link_path = dir.children.detect { |p| root_link? p }
-        root_realpath = root_link_path.realpath
-        root_app_link_name = dir.children.detect { |p| p.realpath == root_realpath and p != root_link_path }.basename
-      end
-    end
+#     def root_link_target_name_in_symlink_dir(dir)
+#       if root_link_path = dir.children.detect { |p| root_link? p }
+#         root_realpath = root_link_path.realpath
+#         root_app_link_name = dir.children.detect { |p| p.realpath == root_realpath and p != root_link_path }.basename
+#       end
+#     end
 
     def projects_relative_project_path(dir)
       File.expand_path(dir).sub(File.expand_path(projects_dir), '').sub(/^\//, '')
@@ -636,7 +635,7 @@ rescue LoadError
 end
 
 pp web_server_setup.project_dirs if $VERBOSE
-pp web_server_setup.symlink_dirs if $VERBOSE
+# pp web_server_setup.symlink_dirs if $VERBOSE
 pp web_server_setup.environments if $VERBOSE
 
 web_server_setup.check_nginx_conf

@@ -27,9 +27,25 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     FileUtils.rm_r $CONFIG_FILES_DIR if File.exist? $CONFIG_FILES_DIR
 
     $CMD = File.join(File.dirname(__FILE__), "..", "bin", "web_server_setup")
-    $CMD = "rcov --aggregate tmp/coverage.data #{$CMD} --"
+    $CMD = "rcov --aggregate tmp/coverage.data --exclude 'rcov,ghost' #{$CMD} --"
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+  end
+  
+  def test_conf_contents_has_been_changed_so_warning_is_generated_for_regular_app
+  end
+  
+  def test_conf_contents_has_been_changed_so_warning_is_generated_for_sub_uri_app
+  end
+  
+  def test_sub_uri_without_root_specified_generates_warning
+  end
+  
+  def test_ghost_manipulation
+    # stub ghost interaction so we don't need to sudo
+  end
+  
+  def test_first_run_prompt_for_projects_dir
   end
   
   def test_sub_uri_conf_references_generated_links_dir

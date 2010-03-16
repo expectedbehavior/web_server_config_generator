@@ -15,9 +15,9 @@ module WebServerConfigGenerator
 #       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
 #     end
 
-    def environments
-      projects.map { |p| p.environments }.flatten.uniq
-    end
+#     def environments
+#       projects.map { |p| p.environments }.flatten.uniq
+#     end
     
     def server_name_from_env(env)
       server_name
