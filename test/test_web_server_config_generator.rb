@@ -51,6 +51,10 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
       :development => {:server_name => "no-webconfig-app-development.local", :port => 44506}
     }
     assert_equal expected_config, YAML.load_file($NO_WEBCONFIG_APP_WEBCONFIG_PATH)
+    
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "*.conf")]
+    config_files_paths.reject! { |p| File.basename(p) == "projects.conf" }
+    assert_equal 3, config_files_paths.size, "found more conf files than should have for only 1 app #{$NO_WEBCONFIG_APP}"
   end
   
   def test_config_dir_creation_when_specifying_projects_dir

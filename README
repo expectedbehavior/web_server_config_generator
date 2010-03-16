@@ -86,3 +86,23 @@ sub_uri apps
 
 # setup .webconfig
   
+
+
+first run, no args
+  => prompt to make cwd projects dir
+
+first run, path arg
+  => prompt to make path projects dir
+
+first run, projects dir flag, no args
+  => setup .webconfig with projects dir, try to make confs, tell user how many confs made, if 0 tell how to generate .webconfig.yml files
+
+first run, projects dir flag, path arg
+  => setup .webconfig with projects dir, generate .webconfig.yml and conf for path
+
+second run, no args
+  => generate all confs
+
+second run, path arg
+  => if path == projects dir generate all confs
+  => if path != projects dir assume it's project and generate .webconfig.yml and conf
