@@ -34,7 +34,7 @@ module WebServerConfigGenerator
       environments.each do |env|
         opts[env.to_sym] = {
           :port => self.generate_port_from_env(env),
-          :server_name => self.server_name_from_env(env),
+          :server_names => [self.server_name_from_env(env)],
         }
       end
       opts
@@ -96,14 +96,15 @@ module WebServerConfigGenerator
     def generate_conf_file_contents(options)
       env = options[:env].to_sym
       port = project_webconfig[env][:port]
-      server_name = project_webconfig[env][:server_name]
+      server_name_listen_lines = project_webconfig[env][:server_names].map { |h| "        #{h}:80;" }.join("\n")
+      server_names = project_webconfig[env][:server_names].map { |h| "#{h} *.#{h}" }.join(" ")
       full_path_to_dir = File.expand_path "#{options[:web_server_links_dir]}/#{env}/#{projects_relative_project_path}"
       root = "#{full_path_to_dir}/public"
       <<-END
     server {
         listen #{port};
-        listen #{server_name}:80;
-        server_name #{server_name} *.#{server_name};
+#{server_name_listen_lines}
+        server_name #{server_names};
         root #{root};
         passenger_enabled on;
 

@@ -26,6 +26,22 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
   end
   
+  def test_sub_uri_apps_link_dir_has_root_when_configured
+  end
+  
+  def test_sub_uri_conf_references_generated_links_dir
+  end
+  
+  def test_sub_uri_apps_generate_link_dir
+#     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
+#     `#{cmd}`
+#     conf_paths = Dir[File.join($CONFIG_FILES_DIR, "sub_uri_apps", "*.conf")]
+#     assert_equal 1, conf_paths.size, "should have found 1 conf file for sub_uri app"
+#     link_paths = Dir[File.join($CONFIG_FILES_DIR, "sub_uri_apps", "sub-uri-apps-host-name.local", "*")]
+#     assert_equal 3, link_paths.size, "should have found 3 links for sub_uri apps, 2 apps, 1 root"
+#     assert link_paths.all? { |l| File.symlink? l }, "expected all symlinks, but found other stuff in sub uri links dir"
+  end
+  
   def test_only_generate_conf_for_specific_project
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$STAND_ALONE_APP}"
     `#{cmd}`
@@ -64,9 +80,9 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     `#{cmd}`
     
     expected_config = {
-      :test => {:server_name => "no-webconfig-app-test.local", :port => 44971},
-      :production => {:server_name => "no-webconfig-app-production.local", :port => 49339},
-      :development => {:server_name => "no-webconfig-app-development.local", :port => 44506}
+      :test => {:server_names => ["no-webconfig-app-test.local"], :port => 44971},
+      :production => {:server_names => ["no-webconfig-app-production.local"], :port => 49339},
+      :development => {:server_names => ["no-webconfig-app-development.local"], :port => 44506}
     }
     assert_equal expected_config, YAML.load_file($NO_WEBCONFIG_APP_WEBCONFIG_PATH)
     

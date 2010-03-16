@@ -1,10 +1,13 @@
 --- 
 :test: 
-  :server_name: stand-alone-app-test.local
   :port: 45143
+  :server_names: 
+  - stand-alone-app-test.local
 :production: 
-  :server_name: stand-alone-app-production.local
   :port: 48038
+  :server_names: 
+  - stand-alone-app-production.local
 :development: 
-  :server_name: stand-alone-app-development.local
   :port: 49377
+  :server_names: 
+  - stand-alone-app-development.local
