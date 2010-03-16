@@ -442,7 +442,6 @@ module WebServerSetup
       end
       
       # setup seed dirs
-#       possible_project_dirs = (@project_or_projects_dir.project_directory? || @project_or_projects_dir.symlink_directory?) ? [@project_or_projects_dir] : @project_or_projects_dir.child_possible_project_directories
       possible_project_dirs = [@project_or_projects_dir]
 
       # classify and recurse through possiblities
