@@ -307,17 +307,21 @@ module WebServerSetup
     
     def setup_config_dir
       unless File.exist?(config_dir)
-        puts "It looks like this is the first time you've run me."
-        puts 
-        if ($PROJECTS_DIRECTORY || agree("setup #{@project_or_projects_dir} as your projects dir? [Y/n]") { |q| q.default = "Y"})
+        unless dir = $PROJECTS_DIRECTORY
+          puts "It looks like this is the first time you've run me."
+          puts 
+          if agree("setup #{@project_or_projects_dir} as your projects dir? [Y/n]") { |q| q.default = "Y"}
+            dir = @project_or_projects_dir
+          else
+            puts "for your first run you'll need to supply your projects directory"
+            exit
+          end
           puts "setting up config dir"
-          FileUtils.mkdir_p config_dir
-          initial_config = { :projects_dirs => [$PROJECTS_DIRECTORY || @project_or_projects_dir]}
-          save_global_config(initial_config)
-        else
-          puts "for your first run you'll need to supply your projects directory"
-          exit
         end
+        
+        FileUtils.mkdir_p config_dir
+        initial_config = { :projects_dirs => [dir]}
+        save_global_config(initial_config)
       end
     end
     
