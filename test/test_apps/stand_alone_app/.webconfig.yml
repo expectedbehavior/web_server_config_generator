@@ -1,0 +1,10 @@
+--- 
+:test: 
+  :server_name: stand-alone-app-test.local
+  :port: 45143
+:production: 
+  :server_name: stand-alone-app-production.local
+  :port: 48038
+:development: 
+  :server_name: stand-alone-app-development.local
+  :port: 49377

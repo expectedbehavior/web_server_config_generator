@@ -6,12 +6,14 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   def setup
     $EXAMPLE_APPS_DIR = File.join(File.dirname(__FILE__), "test_apps")
     $EXAMPLE_APPS = [
-                     $STAND_ALONE_APP = File.join($EXAMPLE_APPS_DIR, "stand_alone_app"),
-                     $SUB_URI_APP_FOO = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_foo"),
-                     $SUB_URI_APP_BAR = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_bar"),
+                     $WEBCONFIG_APPS = [
+                                        $STAND_ALONE_APP = File.join($EXAMPLE_APPS_DIR, "stand_alone_app"),
+                                        $SUB_URI_APP_FOO = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_foo"),
+                                        $SUB_URI_APP_BAR = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_bar"),
+                                        ],
                      $SUB_URI_APP = File.join($EXAMPLE_APPS_DIR, "sub_uri_apps"),
                      $NO_WEBCONFIG_APP = File.join($EXAMPLE_APPS_DIR, "no_webconfig_app"),
-                    ]
+                    ].flatten
 
     $NO_WEBCONFIG_APP_WEBCONFIG_PATH = File.join($NO_WEBCONFIG_APP, ".webconfig.yml")
     FileUtils.rm $NO_WEBCONFIG_APP_WEBCONFIG_PATH if File.exist? $NO_WEBCONFIG_APP_WEBCONFIG_PATH
@@ -22,7 +24,21 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CMD = File.join(File.dirname(__FILE__), "..", "bin", "web_server_setup")
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
-#     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS}"
+  end
+  
+  def test_only_generate_configs_for_projects_with_webconfig_yml
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
+    `#{cmd}`
+    $WEBCONFIG_APPS.each do |app|
+      config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename(app), "*.conf")]
+      assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename(app)}"
+    end
+
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "*.conf")]
+    assert config_files_paths.any?, "couldn't find any conf files for app #{File.basename($SUB_URI_APP)}"
+
+    config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($NO_WEBCONFIG_APP), "*.conf")]
+    assert config_files_paths.empty?, "found conf files for app #{File.basename($NO_WEBCONFIG_APP)} when I shouldn't have"
   end
   
   def test_generate_webconfig_yml_for_project
@@ -35,9 +51,6 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
       :development => {:server_name => "no-webconfig-app-development.local", :port => 44506}
     }
     assert_equal expected_config, YAML.load_file($NO_WEBCONFIG_APP_WEBCONFIG_PATH)
-  end
-  
-  def test_only_generate_configs_for_projects_with_webconfig_yml
   end
   
   def test_config_dir_creation_when_specifying_projects_dir
@@ -66,9 +79,6 @@ HOSTS
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n"
     hosts = `#{cmd}`
     assert_equal <<HOSTS, hosts
-no-webconfig-app-development.local
-no-webconfig-app-production.local
-no-webconfig-app-test.local
 sub-uri-apps-development.local
 sub-uri-apps-production.local
 sub-uri-apps-test.local

@@ -1,0 +1,10 @@
+--- 
+:test: 
+  :server_name: sub-uri-app-bar-test.local
+  :port: 42834
+:production: 
+  :server_name: sub-uri-app-bar-production.local
+  :port: 45436
+:development: 
+  :server_name: sub-uri-app-bar-development.local
+  :port: 44893

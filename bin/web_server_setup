@@ -144,8 +144,9 @@ module WebServerSetup
     end
 
     def project_directory?
-      File.exist? File.join(path, "config", "environment.rb") and
-        not path.symlink?
+#       File.exist? File.join(path, "config", "environment.rb") and
+#         not path.symlink?
+      File.exist? File.join(path, ".webconfig.yml")
     end
 
     def directory_contents(path = self, with_directory = true)
@@ -221,9 +222,9 @@ module WebServerSetup
                         :project_or_projects_dir,
                        ]
     def initialize(options)
-      if REQUIRED_OPTIONS.any? { |o| options[o].nil? }
-        raise ArgumentError.new("Please supply the following options to WebServerSetup.new: #{REQUIRED_OPTIONS.inspect}")
-      end
+#       if REQUIRED_OPTIONS.any? { |o| options[o].nil? }
+#         raise ArgumentError.new("Please supply the following options to WebServerSetup.new: #{REQUIRED_OPTIONS.inspect}")
+#       end
       REQUIRED_OPTIONS.each do |opt|
         instance_variable_set("@#{opt}", options[opt])
       end
@@ -234,6 +235,8 @@ module WebServerSetup
       @environment_map = Hash.new(options[:environments]) if options[:environments]
 
       setup_config_dir
+      
+      @project_or_projects_dir ||= projects_dir
 
       Directory.projects_dir = projects_dir
     end
@@ -320,7 +323,7 @@ module WebServerSetup
         end
         
         FileUtils.mkdir_p config_dir
-        initial_config = { :projects_dirs => [dir]}
+        initial_config = { :projects_dirs => [File.expand_path(dir)]}
         save_global_config(initial_config)
       end
     end
@@ -439,8 +442,14 @@ module WebServerSetup
       @project_dirs ||= []
       @symlink_dirs ||= []
 
+      if @project_or_projects_dir.expand_path != projects_dir.expand_path
+        @project_dirs = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir)]
+        return
+      end
+      
       # setup seed dirs
-      possible_project_dirs = (@project_or_projects_dir.project_directory? || @project_or_projects_dir.symlink_directory?) ? [@project_or_projects_dir] : @project_or_projects_dir.child_possible_project_directories
+#       possible_project_dirs = (@project_or_projects_dir.project_directory? || @project_or_projects_dir.symlink_directory?) ? [@project_or_projects_dir] : @project_or_projects_dir.child_possible_project_directories
+      possible_project_dirs = [@project_or_projects_dir]
 
       # classify and recurse through possiblities
       while possible_project_dir = possible_project_dirs.shift
@@ -531,7 +540,7 @@ module WebServerSetup
 end
 
 
-project_or_projects_dir = WebServerSetup::Directory.new(ARGV.first ? File.expand_path(ARGV.first) : FileUtils.pwd)
+project_or_projects_dir = ARGV.first ? WebServerSetup::Directory.new(File.expand_path(ARGV.first)) : nil
 
 options = {}
 options[:environments] = $ENVS if $ENVS.any?
