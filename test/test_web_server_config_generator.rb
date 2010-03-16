@@ -66,6 +66,9 @@ HOSTS
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n"
     hosts = `#{cmd}`
     assert_equal <<HOSTS, hosts
+no-webconfig-app-development.local
+no-webconfig-app-production.local
+no-webconfig-app-test.local
 sub-uri-apps-development.local
 sub-uri-apps-production.local
 sub-uri-apps-test.local
