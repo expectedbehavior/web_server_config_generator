@@ -1,5 +1,6 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
 require 'yaml'
+require 'pathname'
 
 class TestWebServerConfigGenerator < Test::Unit::TestCase
 
@@ -27,6 +28,12 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   end
   
   def test_sub_uri_conf_references_generated_links_dir
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
+    `#{cmd}`
+    conf_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub-uri-apps-development.local", "*.conf")].first
+    root_path = File.read(conf_path).grep(/root/).first.sub(/.*root (.*);/, '\1').strip
+    assert_equal Pathname.new(File.join($CONFIG_FILES_DIR, "sub_uri_apps", "sub-uri-apps-development.local")).realpath,
+                   Pathname.new(root_path).realpath
   end
   
   def test_sub_uri_apps_generate_link_dir
