@@ -51,6 +51,11 @@ opts = OptionParser.new do |opts|
     $CREATE_WEB_SERVER_FILES_DIR = true
   end
 
+  opts.on("-p", "--projects-dir DIR",
+          "specify the directory containing all your projects") do |dir|
+    $PROJECTS_DIRECTORY = dir
+  end
+
   opts.on("-l", "--web-server-files-dir-location DIR",
           "put all the web server configuration files in DIR instead of the default location") do |path|
     $WEB_SERVER_FILES_DIR = File.expand_path(path)
@@ -114,7 +119,7 @@ def agree( yes_or_no_question, character = nil )
 end
 
 module WebServerSetup
-  WEB_SERVER_FILES_DIR_NAME = "web_server_files"
+  WEB_SERVER_FILES_DIR_NAME = ".webconfig"
   
   class Directory < Pathname
     def self.projects_dir=(d)
@@ -228,6 +233,8 @@ module WebServerSetup
       
       @environment_map = Hash.new(options[:environments]) if options[:environments]
 
+      setup_config_dir
+
       Directory.projects_dir = projects_dir
     end
     
@@ -295,6 +302,22 @@ module WebServerSetup
         pad = present_but_incorrect.max{|a,b| a.to_s.length <=> b.to_s.length }.to_s.length
         puts present_but_incorrect.map { |h| "#{h.name.rjust(pad+2)} -> #{h.ip}\n" }
         puts
+      end
+    end
+    
+    def setup_config_dir
+      unless File.exist?(config_dir)
+        puts "It looks like this is the first time you've run me."
+        puts 
+        if ($PROJECTS_DIRECTORY || agree("setup #{@project_or_projects_dir} as your projects dir? [Y/n]") { |q| q.default = "Y"})
+          puts "setting up config dir"
+          FileUtils.mkdir_p config_dir
+          initial_config = { :projects_dirs => [$PROJECTS_DIRECTORY || @project_or_projects_dir]}
+          save_global_config(initial_config)
+        else
+          puts "for your first run you'll need to supply your projects directory"
+          exit
+        end
       end
     end
     
@@ -367,25 +390,33 @@ module WebServerSetup
     
     private
     
+    def config_dir
+      $WEB_SERVER_FILES_DIR || begin
+                                 raise "Couldn't fine $HOME" unless home_dir = ENV["HOME"]
+                                 File.join(home_dir, ".webconfig")
+                               end
+    end
+    
+    def global_config(reload = false)
+      @global_config = nil if reload
+      @global_config ||= YAML.load_file(global_config_path)
+    end
+    
+    def save_global_config(config)
+      @global_config = config
+      File.open(global_config_path, "w") { |f| f.write config.to_yaml }
+    end
+    
+    def global_config_path
+      File.join(config_dir, "global_config.yml")
+    end
+    
     def projects_dir
-      @projects_dir ||=
-        if $CREATE_WEB_SERVER_FILES_DIR
-          @project_or_projects_dir
-        else
-          @project_or_projects_dir.find_projects_dir ||
-            begin
-              puts "\nI couldn't find an already initialized directory full of projects (probably because this is your first time running me).  I started searching at #{@project_or_projects_dir}.  If that's wrong, exit and run me again supplying the path to your 'projects' directory as the first argument."
-              if agree("\nInitialize #{@project_or_projects_dir} as the directory containing all of your projects? [Y/n]") { |q| q.default = "Y"}
-                @project_or_projects_dir
-              else
-                raise "No projects dir, aborting."
-              end
-            end
-        end
+      WebServerSetup::Directory.new(global_config[:projects_dirs].first).expand_path
     end
     
     def web_server_files_dir
-      $WEB_SERVER_FILES_DIR ? Directory.new($WEB_SERVER_FILES_DIR) : (projects_dir + WEB_SERVER_FILES_DIR_NAME)
+      $WEB_SERVER_FILES_DIR ? Directory.new($WEB_SERVER_FILES_DIR) : config_dir
     end
     
     def web_server_links_dir

@@ -46,3 +46,43 @@ And the next time you create a new project?  You can run this script from that p
 Relative Root Url Directories
 =======================================================
 In order to tell if we should generate a relative root url configuration file we look for directories that contain only symlinks to projects' public directories.  Additionally, if you'd like visiting the root of that site to go to a particular app you can add a symlink named 'root' that expands to the public directory of a project and we'll add an appropriate rewrite line to that nginx config file.
+
+
+
+
+
+
+
+run on more of a per project basis?
+  always assume running from project dir or specifying a project dir
+
+run with project dir, first time, without specifying projects dir
+  => setup .webconfig with default values, register this project
+
+run with old project, second run, without specifying projects dir
+  => re-run project config
+
+run with new project, second run, without specifying projects dir
+  => register proj in .webconfig, generate .webconfig.yml in project
+
+
+do we need to care about specifying the projects dir right now?  I don't wanna
+  if we don't how will we handle sub_uri apps?
+    
+
+run with old project, second run, specifying projects dir
+  => set projects dir, 
+
+
+sub_uri apps
+  could auto figure out when processing all projects
+    what to do about projects without .webconfig.yml?
+      won't know what sub_uri to put them at
+      you'll have to update the project, or generate .webconfig.yml
+    should we then only allow specifying your projects dir and processing the whole thing every time, only hitting .webcomfig.ymls
+      how will we generate .webconfig.yml
+        first run has to config projects dir, then after that if you specify a dir assume it's a project dir
+
+
+# setup .webconfig
+  

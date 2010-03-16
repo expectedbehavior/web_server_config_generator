@@ -15,9 +15,9 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     FileUtils.rm_r $CONFIG_FILES_DIR if File.exist? $CONFIG_FILES_DIR
 
     $CMD = File.join(File.dirname(__FILE__), "..", "bin", "web_server_setup")
-    $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx"
-#     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR}"
-    $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS}"
+    $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
+    $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR}"
+#     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS}"
   end
   
   def test_config_dir_creation_when_specifying_projects_dir
@@ -25,7 +25,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     FileUtils.rm_r config_dir if File.exist? config_dir
     assert !File.exist?(config_dir), "config dir exists and shouldn't yet: #{config_dir}"
     
-    cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
     `#{cmd}`
     
     assert File.exist?(config_dir), "config dir doesn't exist: #{config_dir}"
@@ -34,7 +34,8 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   
   def test_listing_hosts
     # need the -c for now to say that's really the projects dir
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -c #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+#     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -c #{$EXAMPLE_APPS_DIR}"
     `#{cmd}`
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n #{$STAND_ALONE_APP}"
     hosts = `#{cmd}`
@@ -53,7 +54,7 @@ HOSTS
   def test_specifying_config_location
     loc = $CONFIG_FILES_DIR
     assert !File.exist?(loc)
-    cmd = "#{$CMD} --no-add-hosts --no-restart-nginx -l #{loc} #{$STAND_ALONE_APP}"
+    cmd = "#{$CMD} --no-add-hosts --no-restart-nginx -l #{loc} -p #{$EXAMPLE_APPS_DIR}"
     `#{cmd}`
     assert File.exist?(loc), "config file dir wasn't created"
     assert File.exist?(File.join(loc, "links")), "config file links dir wasn't created"
@@ -62,10 +63,12 @@ HOSTS
   
   def test_supplying_specific_env
     # -n so no conf files get created
-    cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c -n #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+#     cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c -n #{$EXAMPLE_APPS_DIR}"
     `#{cmd}`
     
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development #{$STAND_ALONE_APP}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+#     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development #{$STAND_ALONE_APP}"
     `#{cmd}`
     config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($STAND_ALONE_APP), "development.conf")]
     uniq_config_file_names = config_files_paths.map { |p| File.basename(p) }.uniq
@@ -75,10 +78,12 @@ HOSTS
   
   def test_generate_sub_uri_conf
     # -n so no conf files get created
-    cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c -n #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+#     cmd = "#{$CMD} #{$CMD_NO_PROMPT_OPTIONS} -c -n #{$EXAMPLE_APPS_DIR}"
     `#{cmd}`
     
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$SUB_URI_APP}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+#     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$SUB_URI_APP}"
     `#{cmd}`
     config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "development.conf")].first
     assert_match <<CONF, File.read(config_file_path)
