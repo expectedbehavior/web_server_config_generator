@@ -81,7 +81,7 @@ module WebServerConfigGenerator
 
     def generate_port_from_env(env)
       config = self.project_config_files_contents
-      pseudo_random_number = Digest::SHA1.hexdigest(config + env).hex
+      pseudo_random_number = Digest::SHA1.hexdigest(config + env.to_s).hex
       STARTING_PORT + (pseudo_random_number % PORT_POOL_SIZE)
     end
 
@@ -91,6 +91,25 @@ module WebServerConfigGenerator
     
     def projects_relative_project_path
       File.expand_path(self).sub(File.expand_path(WebServerSetup::Directory.projects_dir), '')
+    end
+    
+    def server_name_env_pairs
+      pairs = []
+      environments.each do |env|
+        env = env.to_sym
+        project_webconfig[env][:server_names].each do |h|
+          pairs << [h, env]
+        end
+      end
+      pairs
+    end
+    
+    def relative_root_url_for_env(env)
+      project_webconfig[env.to_sym][:relative_root_url]
+    end
+    
+    def relative_root_url_root_for_env(env)
+      project_webconfig[env.to_sym][:relative_root_url_root]
     end
 
     def generate_conf_file_contents(options)

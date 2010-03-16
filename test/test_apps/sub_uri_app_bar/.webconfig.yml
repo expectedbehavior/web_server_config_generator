@@ -9,5 +9,7 @@
   - sub-uri-app-bar-production.local
 :development: 
   :port: 44893
+  :relative_root_url: /bar
   :server_names: 
   - sub-uri-app-bar-development.local
+  - sub-uri-apps-development.local

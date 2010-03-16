@@ -9,5 +9,8 @@
   - sub-uri-app-foo-production.local
 :development: 
   :port: 43273
+  :relative_root_url: /foo
+  :relative_root_url_root: true
   :server_names: 
   - sub-uri-app-foo-development.local
+  - sub-uri-apps-development.local

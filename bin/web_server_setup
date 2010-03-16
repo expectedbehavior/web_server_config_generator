@@ -13,6 +13,7 @@ $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 require 'web_server_config_generator'
 require 'web_server_config_generator/project_directory'
 require 'web_server_config_generator/symlink_directory'
+require 'web_server_config_generator/sub_uri_project'
 
 
 $ENVS = []
@@ -244,6 +245,10 @@ module WebServerSetup
             list_of_conf_files << write_conf_file(p, env)
           end
         end
+        
+        create_sub_uri_links_dirs
+        
+        list_of_conf_files += write_sub_uri_app_conf_files
 
         current_lines = []
         web_server_vhost_nginx_conf.read.each_line { |l| current_lines << l }
@@ -252,6 +257,66 @@ module WebServerSetup
         new_lines.sort!
         web_server_vhost_nginx_conf.write(new_lines.join)
       end
+    end
+    
+    def write_sub_uri_conf_file(server_name, env_and_projects)
+      env = env_and_projects[:env]
+      projects = env_and_projects[:projects]
+      p = WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects)
+      
+      project_vhost_dir = web_server_vhost_nginx_dir + server_name
+      project_vhost_dir.mkpath
+      project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
+      new_contents = p.generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
+      if project_env_vhost_filename.exist?
+        old_contents = project_env_vhost_filename.read
+        if old_contents != new_contents
+          puts "#{project_env_vhost_filename} exists, but doesn't match"
+        end
+      else
+        project_env_vhost_filename.write new_contents
+      end
+      project_env_vhost_filename.expand_path
+    end
+    
+    def write_sub_uri_app_conf_files
+      sub_uri_app_mapping.map do |server_name, env_and_projects|
+        write_sub_uri_conf_file(server_name, env_and_projects)
+      end
+    end
+    
+    def create_sub_uri_links_dirs
+      sub_uri_app_mapping.each do |server_name, env_and_projects|
+        create_sub_uri_links_dir(server_name, env_and_projects)
+      end
+    end
+    
+    def create_sub_uri_links_dir(server_name, env_and_projects)
+      env = env_and_projects[:env]
+      projects = env_and_projects[:projects]
+      web_server_sub_uri_apps_dir.mkdir unless web_server_sub_uri_apps_dir.exist?
+      links_dir = (web_server_sub_uri_apps_dir + server_name)
+      links_dir.mkdir
+      projects.each do |p|
+        File.symlink p.expand_path + "public", File.join(links_dir, p.relative_root_url_for_env(env))
+        if p.relative_root_url_root_for_env(env)
+          File.symlink p.expand_path + "public", File.join(links_dir, "root")
+        end
+      end
+    end
+    
+    def sub_uri_app_mapping
+      server_name_env_project_map = {}
+      project_dirs.each do |p|
+        p.server_name_env_pairs.each do |server_name_env_pair|
+          server_name_env_project_map[server_name_env_pair[0]] ||= {}
+          server_name_env_project_map[server_name_env_pair[0]][:env] ||= server_name_env_pair[1]
+          raise "can't have one hostname map to multiple envs" if server_name_env_project_map[server_name_env_pair[0]][:env] != server_name_env_pair[1]
+          server_name_env_project_map[server_name_env_pair[0]][:projects] ||= []
+          server_name_env_project_map[server_name_env_pair[0]][:projects] << p
+        end
+      end
+      server_name_env_project_map.select { |server_name, env_and_projects| env_and_projects[:projects].size > 1 }
     end
 
     def server_names
@@ -426,6 +491,10 @@ module WebServerSetup
     
     def web_server_vhost_dir
       web_server_files_dir + "vhost"
+    end
+    
+    def web_server_sub_uri_apps_dir
+      web_server_files_dir + "sub_uri_apps"
     end
     
     def web_server_vhost_nginx_dir
