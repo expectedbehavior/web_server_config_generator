@@ -33,6 +33,12 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   end
   
   def test_conf_contents_has_been_changed_so_warning_is_generated_for_regular_app
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
+    `#{cmd}`
+    conf_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($STAND_ALONE_APP), "*.conf")].first
+    contents = File.read conf_path
+    File.open(conf_path, "w") { |f| f.write "foo\n#{contents}" }
+    assert_match /#{File.basename($STAND_ALONE_APP)}.*#{File.basename(conf_path)}.*exists, but doesn\'t match/, `#{cmd}`
   end
   
   def test_conf_contents_has_been_changed_so_warning_is_generated_for_sub_uri_app

@@ -295,11 +295,11 @@ module WebServerSetup
       projects = env_and_projects[:projects]
       web_server_sub_uri_apps_dir.mkdir unless web_server_sub_uri_apps_dir.exist?
       links_dir = (web_server_sub_uri_apps_dir + server_name)
-      links_dir.mkdir
+      links_dir.mkdir unless links_dir.exist?
       projects.each do |p|
-        File.symlink p.expand_path + "public", File.join(links_dir, p.relative_root_url_for_env(env))
+        symlink p.expand_path + "public", File.join(links_dir, p.relative_root_url_for_env(env))
         if p.relative_root_url_root_for_env(env)
-          File.symlink p.expand_path + "public", File.join(links_dir, "root")
+          symlink p.expand_path + "public", File.join(links_dir, "root")
         end
       end
     end
@@ -386,23 +386,28 @@ module WebServerSetup
       end
     end
     
+    def symlink(link_target, link_name)
+      if File.exist?(link_name)
+        if FileTest.symlink?(link_name)
+          unless File.readlink(link_name) == link_target
+            puts "symlink '#{link_name}' exists, but doesn't appear to link to the correct place"
+          end
+        else
+          puts "couldn't make symlink '#{link_name}', something's already there"
+        end
+      else
+#         link_name.symlink_to_target(link_target)
+        File.symlink link_target, link_name
+      end
+    end
+    
     def setup_webserver_links_dir
       FileUtils.cd projects_dir do
         link_target = File.join "..", ".."
         web_server_links_dir.mkpath
         environments.each do |e|
           link_name = web_server_links_dir + e
-          if File.exist?(link_name)
-            if FileTest.symlink?(link_name)
-              unless File.readlink(link_name) == link_target
-                puts "symlink '#{link_name}' exists, but doesn't appear to link to the correct place"
-              end
-            else
-              puts "couldn't make symlink '#{link_name}', something's already there"
-            end
-          else
-            link_name.symlink_to_target(link_target)
-          end
+          symlink(link_target, link_name)
         end
       end
     end
