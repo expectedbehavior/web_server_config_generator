@@ -1,4 +1,5 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
+require 'yaml'
 
 class TestWebServerConfigGenerator < Test::Unit::TestCase
 
@@ -9,6 +10,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
                      $SUB_URI_APP_FOO = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_foo"),
                      $SUB_URI_APP_BAR = File.join($EXAMPLE_APPS_DIR, "sub_uri_app_bar"),
                      $SUB_URI_APP = File.join($EXAMPLE_APPS_DIR, "sub_uri_apps"),
+                     $NO_WEBCONFIG_APP = File.join($EXAMPLE_APPS_DIR, "no_webconfig_app"),
                     ]
 
     $CONFIG_FILES_DIR = File.join($EXAMPLE_APPS_DIR, "web_server_files")
@@ -18,6 +20,24 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
 #     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS}"
+  end
+  
+  def test_generate_webconfig_yml_for_project
+    yml_path = File.join($NO_WEBCONFIG_APP, ".webconfig.yml")
+    FileUtils.rm yml_path if File.exist? yml_path
+
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} #{$NO_WEBCONFIG_APP}"
+    `#{cmd}`
+    
+    expected_config = {
+      :test => {:server_name => "no-webconfig-app-test.local", :port => 44971},
+      :production => {:server_name => "no-webconfig-app-production.local", :port => 49339},
+      :development => {:server_name => "no-webconfig-app-development.local", :port => 44506}
+    }
+    assert_equal expected_config, YAML.load_file(yml_path)
+  end
+  
+  def test_only_generate_configs_for_projects_with_webconfig_yml
   end
   
   def test_config_dir_creation_when_specifying_projects_dir
@@ -78,10 +98,10 @@ HOSTS
   
   def test_supplying_specific_env
     # -n so no conf files get created
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n"
     `#{cmd}`
     
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -e development"
     `#{cmd}`
     config_files_paths = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($STAND_ALONE_APP), "development.conf")]
     uniq_config_file_names = config_files_paths.map { |p| File.basename(p) }.uniq
@@ -91,10 +111,10 @@ HOSTS
   
   def test_generate_sub_uri_conf
     # -n so no conf files get created
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -n"
     `#{cmd}`
     
-    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
     `#{cmd}`
     config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", File.basename($SUB_URI_APP), "development.conf")].first
     assert_equal <<CONF, File.read(config_file_path)

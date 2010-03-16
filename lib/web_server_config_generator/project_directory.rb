@@ -30,11 +30,34 @@ module WebServerConfigGenerator
       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
     end
     
-    def project_webconfig(defaults)
-      @project_webconfig ||= 
-        project_webconfig_proc(File.exist?(self.project_webconfig_path) ?
-                                 YAML.load_file(self.project_webconfig_path) :
-                                 defaults)
+    def default_webconfig_options
+      opts = {}
+      environments.each do |env|
+        opts[env.to_sym] = {
+          :port => self.generate_port_from_env(env),
+          :server_name => self.server_name_from_env(env),
+        }
+      end
+      opts
+    end
+    
+    def project_webconfig
+      @project_webconfig ||=
+        begin
+          config = default_webconfig_options.merge(File.exist?(self.project_webconfig_path) ?
+                                                     YAML.load_file(self.project_webconfig_path) :
+                                                     {})
+          
+          unless File.exist?(self.project_webconfig_path)
+            save_project_webconfig config
+          end
+          
+          project_webconfig_proc(config)
+        end
+    end
+    
+    def save_project_webconfig(config)
+      File.open(project_webconfig_path, "w") { |f| f.write config.to_yaml }
     end
     
     def project_webconfig_proc(config)
@@ -72,9 +95,10 @@ module WebServerConfigGenerator
     end
 
     def generate_conf_file_contents(options)
-      port = self.generate_port_from_env(options[:env])
-      server_name = self.server_name_from_env(options[:env])
-      full_path_to_dir = File.expand_path "#{options[:web_server_links_dir]}/#{options[:env]}/#{projects_relative_project_path}"
+      env = options[:env].to_sym
+      port = project_webconfig[env][:port]
+      server_name = project_webconfig[env][:server_name]
+      full_path_to_dir = File.expand_path "#{options[:web_server_links_dir]}/#{env}/#{projects_relative_project_path}"
       root = "#{full_path_to_dir}/public"
       <<-END
     server {
@@ -84,7 +108,7 @@ module WebServerConfigGenerator
         root #{root};
         passenger_enabled on;
 
-        rails_env #{options[:env]};
+        rails_env #{env};
         rails_spawn_method conservative;
         
         client_max_body_size 100m;
