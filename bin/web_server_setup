@@ -273,7 +273,7 @@ module WebServerSetup
     def symlink(link_target, link_name)
       if File.exist?(link_name)
         if FileTest.symlink?(link_name)
-          unless File.readlink(link_name) == link_target
+          unless Pathname.new(link_name).realpath == Pathname.new(link_target).realpath
             puts "symlink '#{link_name}' exists, but doesn't appear to link to the correct place"
           end
         else
