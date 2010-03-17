@@ -5,10 +5,11 @@ module WebServerConfigGenerator
     
     attr_accessor :server_name, :env, :projects
     
-    def initialize(server_name, env_and_projects)
+    def initialize(server_name, env_and_projects, web_config_generator)
       @server_name = server_name
       @env = env_and_projects[:env]
       @projects = env_and_projects[:projects]
+      @web_config_generator = web_config_generator
     end
     
 #     def project_name
@@ -59,7 +60,7 @@ module WebServerConfigGenerator
       port = self.generate_port_from_env(options[:env])
 #       server_name = self.server_name_from_env(options[:env])
       puts "fixme sub uri project gen"
-      full_path_to_dir = File.expand_path "#{options[:web_server_links_dir]}/../sub_uri_apps/#{projects_relative_project_path}"
+      full_path_to_dir = File.expand_path "#{@web_config_generator.web_server_sub_uri_apps_dir}/#{projects_relative_project_path}"
       root = full_path_to_dir
       
       rewrite_line, symlink_lines = rewrite_line_and_symlink_lines_from_symlink_dir

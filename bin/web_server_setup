@@ -240,7 +240,7 @@ module WebServerSetup
         # generate files for each proj/env
         list_of_conf_files = []
         project_dirs.each do |p|
-          environment_map[p.realpath].each do |env|
+          environment_map[p].each do |env|
             list_of_conf_files << write_conf_file(p, env)
           end
         end
@@ -261,7 +261,7 @@ module WebServerSetup
     def write_sub_uri_conf_file(server_name, env_and_projects)
       env = env_and_projects[:env]
       projects = env_and_projects[:projects]
-      p = WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects)
+      p = WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
       
       project_vhost_dir = web_server_vhost_nginx_dir + server_name
       project_vhost_dir.mkpath
@@ -458,6 +458,18 @@ module WebServerSetup
       end
     end
     
+    def web_server_links_dir
+      web_server_files_dir + "links"
+    end
+    
+    def projects_dir
+      WebServerSetup::Directory.new(global_config[:projects_dirs].first).expand_path
+    end
+    
+    def web_server_sub_uri_apps_dir
+      web_server_files_dir + "sub_uri_apps"
+    end
+    
     private
     
     def config_dir
@@ -481,24 +493,12 @@ module WebServerSetup
       File.join(config_dir, "global_config.yml")
     end
     
-    def projects_dir
-      WebServerSetup::Directory.new(global_config[:projects_dirs].first).expand_path
-    end
-    
     def web_server_files_dir
       $WEB_SERVER_FILES_DIR ? Directory.new($WEB_SERVER_FILES_DIR) : config_dir
     end
     
-    def web_server_links_dir
-      web_server_files_dir + "links"
-    end
-    
     def web_server_vhost_dir
       web_server_files_dir + "vhost"
-    end
-    
-    def web_server_sub_uri_apps_dir
-      web_server_files_dir + "sub_uri_apps"
     end
     
     def web_server_vhost_nginx_dir
@@ -510,7 +510,7 @@ module WebServerSetup
 #       @symlink_dirs ||= []
 
       if @project_or_projects_dir.expand_path != projects_dir.expand_path
-        @project_dirs = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir)]
+        @project_dirs = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir, self)]
         return
       end
       
@@ -520,7 +520,7 @@ module WebServerSetup
       # classify and recurse through possiblities
       while possible_project_dir = possible_project_dirs.shift
         if possible_project_dir.project_directory?
-          @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(possible_project_dir)
+          @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(possible_project_dir, self)
 #         elsif possible_project_dir.symlink_directory?
 #           @symlink_dirs << WebServerConfigGenerator::SymlinkDirectory.new(possible_project_dir)
         elsif possible_project_dir.symlink?
@@ -533,7 +533,7 @@ module WebServerSetup
     end
     
     def projects_environment_map
-      project_dirs.inject({}) { |m, o| m[o.realpath] = o.environments; m }
+      project_dirs.inject({}) { |map, p| map[p] = p.environments; map }
     end
     
     def symlinks_environment_map
@@ -543,7 +543,7 @@ module WebServerSetup
 #         m
 #       end
       sub_uri_app_mapping.inject({}) do |map, server_name_and_env_and_projects|
-        p = WebServerConfigGenerator::SubUriProject.new(server_name_and_env_and_projects[0], server_name_and_env_and_projects[1])
+        p = WebServerConfigGenerator::SubUriProject.new(server_name_and_env_and_projects[0], server_name_and_env_and_projects[1], self)
         map[p] = p.env.to_s
         map
       end

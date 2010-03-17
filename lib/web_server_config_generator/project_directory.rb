@@ -3,9 +3,35 @@ module WebServerConfigGenerator
     STARTING_PORT = 40_000
     PORT_POOL_SIZE = 10_000
     
+    attr_reader :original_realpath
+    
+    def initialize(dir, web_config_generator)
+      @web_config_generator = web_config_generator
+      super(dir)
+      @original_realpath = self.realpath
+    end
+    
     def path
       self
     end
+    
+    def realpath
+      Pathname.new(self).realpath
+    end
+    
+    def basename
+      Pathname.new(self).basename
+    end
+    
+    def expand_path
+      Pathname.new(self).expand_path
+    end
+    
+    def eql?(obj)
+      return false unless ProjectDirectory === obj
+      self.original_realpath == obj.original_realpath
+    end
+    alias :== :eql?
     
     def +(other)
       other = self.class.new(other) unless self.class === other
@@ -90,7 +116,7 @@ module WebServerConfigGenerator
     end
     
     def projects_relative_project_path
-      File.expand_path(self).sub(File.expand_path(WebServerSetup::Directory.projects_dir), '')
+      File.expand_path(self).sub(File.expand_path(@web_config_generator.projects_dir), '')
     end
     
     def server_name_env_pairs
@@ -117,7 +143,7 @@ module WebServerConfigGenerator
       port = project_webconfig[env][:port]
       server_name_listen_lines = project_webconfig[env][:server_names].map { |h| "        #{h}:80;" }.join("\n")
       server_names = project_webconfig[env][:server_names].map { |h| "#{h} *.#{h}" }.join(" ")
-      full_path_to_dir = File.expand_path "#{options[:web_server_links_dir]}/#{env}/#{projects_relative_project_path}"
+      full_path_to_dir = File.expand_path "#{@web_config_generator.web_server_links_dir}/#{env}/#{projects_relative_project_path}"
       root = "#{full_path_to_dir}/public"
       <<-END
     server {
