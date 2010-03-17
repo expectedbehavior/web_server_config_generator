@@ -414,8 +414,8 @@ module WebServerSetup
        Dir[File.join(projects_dir, "*", ".webconfig.yml")],
        Dir[File.join(projects_dir, "*", "*", ".webconfig.yml")],
        Dir[File.join(projects_dir, "*", "*", "*", ".webconfig.yml")],
-      ].flatten.each do |webconfig_path|
-        @app_projects << WebServerConfigGenerator::ProjectDirectory.new(File.dirname(webconfig_path), self)
+      ].flatten.map { |p| Pathname.new(p).realpath.dirname }.uniq.each do |path|
+        @app_projects << WebServerConfigGenerator::ProjectDirectory.new(path, self)
       end
     end
     
