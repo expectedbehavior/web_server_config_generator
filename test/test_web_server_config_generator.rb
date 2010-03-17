@@ -65,6 +65,10 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
       
     expect_global_config = {:projects_dirs => [File.expand_path($EXAMPLE_APPS_DIR)]}
     assert_equal expect_global_config, YAML.load_file(File.join($CONFIG_FILES_DIR, "global_config.yml"))
+
+    ["vhost", "links", "sub_uri_apps"].each do |dir|
+      assert File.exist?(File.join($CONFIG_FILES_DIR, dir)), "#{dir} config dir didn't exist"
+    end
   end
   
   def test_conf_contents_has_been_changed_so_warning_is_generated_for_regular_app

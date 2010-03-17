@@ -356,7 +356,7 @@ module WebServerSetup
     end
     
     def web_server_links_dir
-      web_server_files_dir + "links"
+      config_dir + "links"
     end
     
     def projects_dir
@@ -364,16 +364,19 @@ module WebServerSetup
     end
     
     def web_server_sub_uri_apps_dir
-      web_server_files_dir + "sub_uri_apps"
+      config_dir + "sub_uri_apps"
     end
     
     private
     
     def config_dir
-      $WEB_SERVER_FILES_DIR || begin
-                                 raise "Couldn't fine $HOME" unless home_dir = ENV["HOME"]
-                                 File.join(home_dir, ".webconfig")
-                               end
+      @config_dir ||=
+        begin
+          Directory.new $WEB_SERVER_FILES_DIR || begin
+                                     raise "Couldn't fine $HOME" unless home_dir = ENV["HOME"]
+                                     File.join(home_dir, ".webconfig")
+                                   end
+        end
     end
     
     def global_config(reload = false)
@@ -390,12 +393,8 @@ module WebServerSetup
       File.join(config_dir, "global_config.yml")
     end
     
-    def web_server_files_dir
-      $WEB_SERVER_FILES_DIR ? Directory.new($WEB_SERVER_FILES_DIR) : config_dir
-    end
-    
     def web_server_vhost_dir
-      web_server_files_dir + "vhost"
+      config_dir + "vhost"
     end
     
     def web_server_vhost_nginx_dir
