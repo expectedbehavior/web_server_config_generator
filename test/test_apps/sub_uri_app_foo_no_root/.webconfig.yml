@@ -1,0 +1,15 @@
+--- 
+:test: 
+  :port: 48214
+  :server_names: 
+  - sub-uri-app-foo-no-root-test.local
+:production: 
+  :port: 46498
+  :server_names: 
+  - sub-uri-app-foo-no-root-production.local
+:development: 
+  :port: 43273
+  :relative_root_url: /foo
+  :server_names: 
+  - sub-uri-app-foo-no-root-development.local
+  - sub-uri-apps-no-root-development.local
