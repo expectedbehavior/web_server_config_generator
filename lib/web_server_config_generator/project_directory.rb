@@ -159,7 +159,7 @@ EXAMPLE
     end
     
     def server_names
-      environments.map { |e| server_name_from_env e }
+      environments.map { |env| project_webconfig[env.to_sym][:server_names] }.flatten
     end
     
     def projects_relative_project_path

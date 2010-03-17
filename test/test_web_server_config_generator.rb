@@ -229,6 +229,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
+stand-alone-app-another-development.local
 HOSTS
   end
   
@@ -241,6 +242,7 @@ sub-uri-apps-no-root-development.local
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
+stand-alone-app-another-development.local
 sub-uri-app-foo-development.local
 sub-uri-app-foo-production.local
 sub-uri-app-foo-test.local

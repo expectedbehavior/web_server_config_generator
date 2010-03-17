@@ -11,3 +11,4 @@
   :port: 49377
   :server_names: 
   - stand-alone-app-development.local
+  - stand-alone-app-another-development.local

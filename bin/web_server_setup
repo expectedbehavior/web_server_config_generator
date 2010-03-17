@@ -208,7 +208,7 @@ module WebServerSetup
     end
 
     def server_names
-      projects.map { |p| p.server_names }.flatten
+      projects.map { |p| p.server_names }.flatten.uniq
     end
     
     def add_ghost_entries
