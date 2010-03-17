@@ -1,8 +1,5 @@
 module WebServerConfigGenerator
   class SubUriProject
-    STARTING_PORT = 40_000
-    PORT_POOL_SIZE = 10_000
-    
     attr_accessor :server_name, :env, :projects
     
     def initialize(server_name, env_and_projects, web_config_generator)
@@ -27,7 +24,7 @@ module WebServerConfigGenerator
 
     def generate_port_from_env(env)
       pseudo_random_number = projects.inject(0) { |sum, p| sum + p.generate_port_from_env(env) }
-      STARTING_PORT + (pseudo_random_number % PORT_POOL_SIZE)
+      WebServerConfigGenerator::STARTING_PORT + (pseudo_random_number % WebServerConfigGenerator::PORT_POOL_SIZE)
     end
     
     def projects_relative_project_path

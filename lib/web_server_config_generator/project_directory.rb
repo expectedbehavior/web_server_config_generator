@@ -1,8 +1,5 @@
 module WebServerConfigGenerator
   class ProjectDirectory < Pathname
-    STARTING_PORT = 40_000
-    PORT_POOL_SIZE = 10_000
-    
     attr_reader :original_realpath
     
     def initialize(dir, web_config_generator)
@@ -99,7 +96,7 @@ module WebServerConfigGenerator
     def generate_port_from_env(env)
       config = self.project_config_files_contents
       pseudo_random_number = Digest::SHA1.hexdigest(config + env.to_s).hex
-      STARTING_PORT + (pseudo_random_number % PORT_POOL_SIZE)
+      WebServerConfigGenerator::STARTING_PORT + (pseudo_random_number % WebServerConfigGenerator::PORT_POOL_SIZE)
     end
 
     def server_name_from_env(env)
