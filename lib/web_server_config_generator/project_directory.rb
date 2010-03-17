@@ -37,19 +37,10 @@ module WebServerConfigGenerator
       other = self.class.new(other) unless self.class === other
       self.class.new(plus(@path, other.to_s))
     end
-    
-#     def file_path_split
-#       return [path] if path.parent.expand_path == path.expand_path
-#       self.class.new(path.parent.expand_path).file_path_split + [path.basename]
-#     end
 
     def environments
       Dir[path.to_s + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
     end
-    
-#     def without(path)
-#       self.to_s.sub(path, '')
-#     end
     
     def project_name
       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase

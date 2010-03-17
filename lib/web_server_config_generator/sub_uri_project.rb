@@ -12,13 +12,10 @@ module WebServerConfigGenerator
       @web_config_generator = web_config_generator
     end
     
-#     def project_name
-#       self.basename.to_s.gsub(/[^[:alnum:]]/, '-').squeeze('-').gsub(/(^-|-$)/, '').downcase
-#     end
-
-#     def environments
-#       projects.map { |p| p.environments }.flatten.uniq
-#     end
+    def to_s
+      server_name.dup
+    end
+    alias :to_str :to_s
     
     def server_name_from_env(env)
       server_name

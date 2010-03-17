@@ -198,29 +198,10 @@ module WebServerSetup
       end
     end
     
-    def write_sub_uri_conf_file(server_name, env_and_projects)
-      env = env_and_projects[:env]
-      projects = env_and_projects[:projects]
-      p = WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
-      
-      project_vhost_dir = web_server_vhost_nginx_dir + server_name
-      project_vhost_dir.mkpath
-      project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
-      new_contents = p.generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
-      if project_env_vhost_filename.exist?
-        old_contents = project_env_vhost_filename.read
-        if old_contents != new_contents
-          puts "#{project_env_vhost_filename} exists, but doesn't match"
-        end
-      else
-        project_env_vhost_filename.write new_contents
-      end
-      project_env_vhost_filename.expand_path
-    end
-    
     def write_sub_uri_app_conf_files
       sub_uri_app_mapping.map do |server_name, env_and_projects|
-        write_sub_uri_conf_file(server_name, env_and_projects)
+        p = WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
+        write_conf_file(p, env_and_projects[:env])
       end
     end
     
@@ -473,7 +454,7 @@ module WebServerSetup
       project_vhost_dir = web_server_vhost_nginx_dir + projects_relative_project_path(p)
       project_vhost_dir.mkpath
       project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
-      new_contents = p.generate_conf_file_contents(:env => env, :web_server_links_dir => web_server_links_dir)
+      new_contents = p.generate_conf_file_contents(:env => env)
       if project_env_vhost_filename.exist?
         old_contents = project_env_vhost_filename.read
         if old_contents != new_contents
