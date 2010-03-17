@@ -238,9 +238,6 @@ HOSTS
     assert_equal <<HOSTS.sort, hosts.sort
 sub-uri-apps-development.local
 sub-uri-apps-no-root-development.local
-stand-alone-app-alt-link-development.local
-stand-alone-app-alt-link-production.local
-stand-alone-app-alt-link-test.local
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
