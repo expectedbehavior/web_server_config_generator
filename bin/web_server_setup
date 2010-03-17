@@ -125,77 +125,17 @@ module WebServerSetup
     def self.projects_dir=(d)
       @@projects_dir = d
     end
-    def self.projects_dir
-      @@projects_dir
-    end
-    
-    def path
-      self
-    end
     
     def +(other)
       other = self.class.new(other) unless self.class === other
       self.class.new(plus(@path, other.to_s))
     end
 
-    def file_path_split
-      return [path] if path.parent.expand_path == path.expand_path
-      self.class.new(path.parent.expand_path).file_path_split + [path.basename]
-    end
-
-    def project_directory?
-#       File.exist? File.join(path, "config", "environment.rb") and
-#         not path.symlink?
-      File.exist? File.join(path, ".webconfig.yml")
-    end
-
-#     def directory_contents(path = self, with_directory = true)
-#       self.class.new(path).children(with_directory)
-#     end
-    
-    def possible_project_directory?
-      self.directory? and
-        self.basename.to_s != WEB_SERVER_FILES_DIR_NAME and
-        self.file_path_split.size - @@projects_dir.file_path_split.size <= 3 # don't want rails apps that are part of tests or whatever
-    end
-    
-    def child_possible_project_directories
-      children.select do |filename|
-        filename.possible_project_directory?
-      end
-    end
-
-#     def symlink_directory?
-#       contents = directory_contents(path)
-#       contents.any? and contents.all? { |p| FileTest.symlink? p }
-#     end
-
-#     def projects_directory?
-#       directory_contents(path, false).map { |p| p.to_s }.include? WEB_SERVER_FILES_DIR_NAME
-#     end
-
-#     def find_projects_dir
-#       return path if path.projects_directory?
-#       self.parent.expand_path.find_projects_dir unless path.parent.expand_path == path.expand_path
-#     end
-
-#     def without(path)
-#       self.to_s.sub(path, '')
-#     end
-    
     def mkpath
       if $TEST_MODE
         puts "test mode: mkpath #{self}"
       else
         super
-      end
-    end
-    
-    def symlink_to_target(target)
-      if $TEST_MODE
-        puts "test mode: symlink_to_target #{self} -> #{target}"
-      else
-        File.symlink target, self.expand_path
       end
     end
     
@@ -396,7 +336,6 @@ module WebServerSetup
           puts "couldn't make symlink '#{link_name}', something's already there"
         end
       else
-#         link_name.symlink_to_target(link_target)
         File.symlink link_target, link_name
       end
     end
@@ -419,14 +358,6 @@ module WebServerSetup
           @project_dirs
         end
     end
-    
-#     def symlink_dirs
-#       @symlink_dirs ||=
-#         begin
-#           find_project_and_symlink_dirs
-#           @symlink_dirs
-#         end
-#     end
     
     def environments
       @environments ||= environment_map.values.flatten.uniq
@@ -507,28 +438,14 @@ module WebServerSetup
     
     def find_project_and_symlink_dirs
       @project_dirs ||= []
-#       @symlink_dirs ||= []
 
       if @project_or_projects_dir.expand_path != projects_dir.expand_path
         @project_dirs = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir, self)]
         return
       end
       
-      # setup seed dirs
-      possible_project_dirs = [@project_or_projects_dir]
-
-      # classify and recurse through possiblities
-      while possible_project_dir = possible_project_dirs.shift
-        if possible_project_dir.project_directory?
-          @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(possible_project_dir, self)
-#         elsif possible_project_dir.symlink_directory?
-#           @symlink_dirs << WebServerConfigGenerator::SymlinkDirectory.new(possible_project_dir)
-        elsif possible_project_dir.symlink?
-          # ignore symlinks
-        else
-          # look in that dir for project directories
-          possible_project_dirs += possible_project_dir.child_possible_project_directories
-        end
+      Dir[File.join(projects_dir, "**", ".webconfig.yml")].map do |webconfig_path|
+        @project_dirs << WebServerConfigGenerator::ProjectDirectory.new(File.dirname(webconfig_path), self)
       end
     end
     
@@ -537,11 +454,6 @@ module WebServerSetup
     end
     
     def symlinks_environment_map
-#       symlink_dirs.inject({}) do |m, symlink_dir|
-#         envs = symlink_dir.children.map { |p| p.realpath.parent.environments }.flatten.uniq
-#         m[symlink_dir.realpath] = envs.uniq
-#         m
-#       end
       sub_uri_app_mapping.inject({}) do |map, server_name_and_env_and_projects|
         p = WebServerConfigGenerator::SubUriProject.new(server_name_and_env_and_projects[0], server_name_and_env_and_projects[1], self)
         map[p] = p.env.to_s
@@ -552,17 +464,6 @@ module WebServerSetup
     def environment_map
       @environment_map ||= projects_environment_map.merge(symlinks_environment_map)
     end
-
-#     def root_link?(path)
-#       path.basename.to_s == "root"
-#     end
-
-#     def root_link_target_name_in_symlink_dir(dir)
-#       if root_link_path = dir.children.detect { |p| root_link? p }
-#         root_realpath = root_link_path.realpath
-#         root_app_link_name = dir.children.detect { |p| p.realpath == root_realpath and p != root_link_path }.basename
-#       end
-#     end
 
     def projects_relative_project_path(dir)
       File.expand_path(dir).sub(File.expand_path(projects_dir), '').sub(/^\//, '')
