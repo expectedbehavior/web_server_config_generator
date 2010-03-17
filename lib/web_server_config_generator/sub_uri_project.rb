@@ -65,7 +65,7 @@ module WebServerConfigGenerator
       <<-END
     server {
         listen #{port};
-        listen #{server_name}:80;
+        listen 80;
         server_name #{server_name} *.#{server_name};
         root #{root};
         passenger_enabled on;

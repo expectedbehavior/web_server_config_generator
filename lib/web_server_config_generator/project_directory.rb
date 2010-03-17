@@ -184,13 +184,18 @@ EXAMPLE
     def relative_root_url_root_for_env(env)
       project_webconfig[env.to_sym][:relative_root_url_root]
     end
+    
+    def server_names_without_sub_uri_apps_for_env(env)
+      project_webconfig[env][:server_names].reject { |n| @web_config_generator.sub_uri_projects.map { |p| p.server_names }.flatten.include? n }
+    end
 
     def generate_conf_file_contents(options)
       env = options[:env].to_sym
       port = project_webconfig[env][:port]
 #       server_name_listen_lines = project_webconfig[env][:server_names].map { |h| "        listen #{h}:80;" }.join("\n")
       server_name_listen_lines = "        listen 80;"
-      server_names = project_webconfig[env][:server_names].map { |h| "#{h} *.#{h}" }.join(" ")
+#       server_names = project_webconfig[env][:server_names].map { |h| "#{h} *.#{h}" }.join(" ")
+      server_names = server_names_without_sub_uri_apps_for_env(env).map { |h| "#{h} *.#{h}" }.join(" ")
       full_path_to_dir = File.expand_path "#{@web_config_generator.web_server_links_dir}/#{env}/#{projects_relative_project_path}"
       root = "#{full_path_to_dir}/public"
       <<-END

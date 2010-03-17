@@ -291,11 +291,13 @@ HOSTS
     
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
     `#{cmd}`
+    
+    # check sub uri apps config is correct
     config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub-uri-apps-development.local", "development.conf")].first
-    assert_equal <<CONF, File.read(config_file_path)
+    assert_equal <<CONF, File.read(config_file_path), "sub uri conf file didn't match"
     server {
         listen 48166;
-        listen sub-uri-apps-development.local:80;
+        listen 80;
         server_name sub-uri-apps-development.local *.sub-uri-apps-development.local;
         root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/sub_uri_apps/sub-uri-apps-development.local;
         passenger_enabled on;
@@ -307,6 +309,24 @@ HOSTS
         passenger_base_uri /bar;
         passenger_base_uri /foo;
 
+        client_max_body_size 100m;
+        client_body_timeout   300;
+    }
+CONF
+    
+    # check the app alone config is correct
+    config_file_path = Dir[File.join($CONFIG_FILES_DIR, "vhost", "**", "sub_uri_app_foo", "development.conf")].first
+    assert_equal <<CONF, File.read(config_file_path), "conf for one sub uri app didn't match"
+    server {
+        listen 43273;
+        listen 80;
+        server_name sub-uri-app-foo-development.local *.sub-uri-app-foo-development.local;
+        root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/links/development/sub_uri_app_foo/public;
+        passenger_enabled on;
+
+        rails_env development;
+        rails_spawn_method conservative;
+        
         client_max_body_size 100m;
         client_body_timeout   300;
     }
