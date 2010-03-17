@@ -285,13 +285,10 @@ module WebServerSetup
     end
     
     def setup_webserver_links_dir
-      FileUtils.cd projects_dir do
-        link_target = File.join "..", ".."
-        web_server_links_dir.mkpath
-        environments.each do |e|
-          link_name = web_server_links_dir + e
-          symlink(link_target, link_name)
-        end
+      web_server_links_dir.mkpath
+      environments.each do |e|
+        link_name = web_server_links_dir + e
+        symlink(projects_dir, link_name)
       end
     end
     
@@ -409,7 +406,11 @@ module WebServerSetup
         return
       end
       
-      Dir[File.join(projects_dir, "**", ".webconfig.yml")].each do |webconfig_path|
+      [
+       Dir[File.join(projects_dir, "*", ".webconfig.yml")],
+       Dir[File.join(projects_dir, "*", "*", ".webconfig.yml")],
+       Dir[File.join(projects_dir, "*", "*", "*", ".webconfig.yml")],
+      ].flatten.each do |webconfig_path|
         @app_projects << WebServerConfigGenerator::ProjectDirectory.new(File.dirname(webconfig_path), self)
       end
     end

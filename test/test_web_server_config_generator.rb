@@ -185,7 +185,9 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   end
   
   def test_config_dir_creation_when_specifying_projects_dir
-    config_dir = $CONFIG_FILES_DIR # File.join($EXAMPLE_APPS_DIR, "web_server_files")
+    # make it a little weirder to check ../..
+    config_dir = File.join($CONFIG_FILES_DIR, "testfoo")
+    
     FileUtils.rm_r config_dir if File.exist? config_dir
     assert !File.exist?(config_dir), "config dir exists and shouldn't yet: #{config_dir}"
     
@@ -193,6 +195,8 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     `#{cmd}`
     
     assert File.exist?(config_dir), "config dir doesn't exist: #{config_dir}"
+    assert_equal Pathname.new($EXAMPLE_APPS_DIR).realpath, Pathname.new(File.join(config_dir, "links", "development")).realpath, "webconfig links should point to projects dir"
+    
     FileUtils.rm_r config_dir if File.exist? config_dir
   end
   
