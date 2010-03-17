@@ -122,10 +122,6 @@ module WebServerSetup
   WEB_SERVER_FILES_DIR_NAME = ".webconfig"
   
   class Directory < Pathname
-    def self.projects_dir=(d)
-      @@projects_dir = d
-    end
-    
     def +(other)
       other = self.class.new(other) unless self.class === other
       self.class.new(plus(@path, other.to_s))
@@ -171,15 +167,13 @@ module WebServerSetup
       setup_config_dir
       
       @project_or_projects_dir ||= projects_dir
-
-      Directory.projects_dir = projects_dir
     end
     
     def write_conf_files
       FileUtils.cd projects_dir do
         # generate files for each proj/env
         list_of_conf_files = []
-        projects.each do |p|
+        app_projects.each do |p|
           environment_map[p].each do |env|
             list_of_conf_files << write_conf_file(p, env)
           end
@@ -212,30 +206,9 @@ module WebServerSetup
         end
       end
     end
-    
-    def sub_uri_projects
-      server_name_env_project_map = {}
-      projects.each do |p|
-        p.server_name_env_pairs.each do |server_name, env|
-          server_name_env_project_map[server_name] ||= {}
-          server_name_env_project_map[server_name][:env] ||= env
-          raise "can't have one hostname map to multiple envs" if server_name_env_project_map[server_name][:env] != env
-          server_name_env_project_map[server_name][:projects] ||= []
-          server_name_env_project_map[server_name][:projects] << p
-        end
-      end
-      server_name_env_project_map = server_name_env_project_map.select { |server_name, env_and_projects| env_and_projects[:projects].size > 1 }
-      server_name_env_project_map.map do |server_name, env_and_projects|
-        WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
-      end
-    end
 
     def server_names
-      environment_map.map do |dir, envs|
-        envs.map do |env|
-          dir.server_name_from_env(env)
-        end
-      end.flatten
+      projects.map { |p| p.server_names }.flatten
     end
     
     def add_ghost_entries
@@ -323,12 +296,34 @@ module WebServerSetup
       end
     end
     
-    def projects
-      @projects ||=
+    def app_projects
+      @app_projects ||=
         begin
           find_project_and_symlink_dirs
-          @projects
+          @app_projects
         end
+    end
+    
+    def sub_uri_projects
+      return @sub_uri_projects if @sub_uri_projects
+      server_name_env_project_map = {}
+      app_projects.each do |p|
+        p.server_name_env_pairs.each do |server_name, env|
+          server_name_env_project_map[server_name] ||= {}
+          server_name_env_project_map[server_name][:env] ||= env
+          raise "can't have one hostname map to multiple envs" if server_name_env_project_map[server_name][:env] != env
+          server_name_env_project_map[server_name][:projects] ||= []
+          server_name_env_project_map[server_name][:projects] << p
+        end
+      end
+      server_name_env_project_map = server_name_env_project_map.select { |server_name, env_and_projects| env_and_projects[:projects].size > 1 }
+      @sub_uri_projects = server_name_env_project_map.map do |server_name, env_and_projects|
+        WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
+      end
+    end
+    
+    def projects
+      app_projects + sub_uri_projects
     end
     
     def environments
@@ -409,20 +404,20 @@ module WebServerSetup
     end
     
     def find_project_and_symlink_dirs
-      @projects ||= []
+      @app_projects ||= []
 
       if @project_or_projects_dir.expand_path != projects_dir.expand_path
-        @projects = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir, self)]
+        @app_projects = [WebServerConfigGenerator::ProjectDirectory.new(@project_or_projects_dir, self)]
         return
       end
       
       Dir[File.join(projects_dir, "**", ".webconfig.yml")].each do |webconfig_path|
-        @projects << WebServerConfigGenerator::ProjectDirectory.new(File.dirname(webconfig_path), self)
+        @app_projects << WebServerConfigGenerator::ProjectDirectory.new(File.dirname(webconfig_path), self)
       end
     end
     
     def projects_environment_map
-      projects.inject({}) { |map, p| map[p] = p.environments; map }
+      app_projects.inject({}) { |map, p| map[p] = p.environments; map }
     end
     
     def symlinks_environment_map
@@ -508,7 +503,7 @@ rescue LoadError
   puts "Couldn't load ghost so I won't add hostname entries for you.  Install the 'ghost' gem, or run me with a -n to get a list of hostnames to setup youself."
 end
 
-pp web_server_setup.projects if $VERBOSE
+pp web_server_setup.app_projects if $VERBOSE
 # pp web_server_setup.symlink_dirs if $VERBOSE
 pp web_server_setup.environments if $VERBOSE
 

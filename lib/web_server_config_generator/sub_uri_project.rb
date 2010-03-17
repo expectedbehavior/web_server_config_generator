@@ -20,6 +20,10 @@ module WebServerConfigGenerator
     def server_name_from_env(env)
       server_name
     end
+    
+    def server_names
+      [server_name]
+    end
 
     def generate_port_from_env(env)
       pseudo_random_number = projects.inject(0) { |sum, p| sum + p.generate_port_from_env(env) }

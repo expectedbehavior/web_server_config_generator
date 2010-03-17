@@ -106,6 +106,10 @@ module WebServerConfigGenerator
       "#{self.project_name}-#{env}.local"
     end
     
+    def server_names
+      environments.map { |e| server_name_from_env e }
+    end
+    
     def projects_relative_project_path
       File.expand_path(self).sub(File.expand_path(@web_config_generator.projects_dir), '')
     end
