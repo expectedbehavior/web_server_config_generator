@@ -51,6 +51,8 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   end
   
   def test_sub_uri_without_root_specified_generates_warning
+    cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
+    assert_match /Specify a symlink named 'root' that points/, `#{cmd}`
   end
   
   def test_ghost_manipulation
@@ -156,15 +158,22 @@ HOSTS
     hosts = `#{cmd}`
     assert_equal <<HOSTS.sort, hosts.sort
 sub-uri-apps-development.local
+sub-uri-apps-no-root-development.local
 stand-alone-app-development.local
 stand-alone-app-production.local
 stand-alone-app-test.local
 sub-uri-app-foo-development.local
 sub-uri-app-foo-production.local
 sub-uri-app-foo-test.local
+sub-uri-app-foo-no-root-development.local
+sub-uri-app-foo-no-root-production.local
+sub-uri-app-foo-no-root-test.local
 sub-uri-app-bar-development.local
 sub-uri-app-bar-production.local
 sub-uri-app-bar-test.local
+sub-uri-app-bar-no-root-development.local
+sub-uri-app-bar-no-root-production.local
+sub-uri-app-bar-no-root-test.local
 HOSTS
   end
   

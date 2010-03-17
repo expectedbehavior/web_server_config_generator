@@ -31,9 +31,13 @@ module WebServerConfigGenerator
     def projects_relative_project_path
       server_name
     end
+    
+    def root_project
+      projects.detect { |p| p.relative_root_url_root_for_env(env) }
+    end
 
     def root_link_target_name_in_symlink_dir
-      File.basename(projects.detect { |p| p.relative_root_url_root_for_env(env) }.relative_root_url_for_env(env))
+      File.basename(root_project.relative_root_url_for_env(env)) if root_project
     end
 
     def rewrite_line_and_symlink_lines_from_symlink_dir
