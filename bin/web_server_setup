@@ -213,10 +213,6 @@ module WebServerSetup
       end
     end
     
-    def sub_uri_app_mapping
-      sub_uri_projects.map { |p| [p.server_name, { :env => p.env, :projects => p.projects }] }
-    end
-    
     def sub_uri_projects
       server_name_env_project_map = {}
       projects.each do |p|
@@ -430,11 +426,7 @@ module WebServerSetup
     end
     
     def symlinks_environment_map
-      sub_uri_app_mapping.inject({}) do |map, server_name_and_env_and_projects|
-        p = WebServerConfigGenerator::SubUriProject.new(server_name_and_env_and_projects[0], server_name_and_env_and_projects[1], self)
-        map[p] = p.env.to_s
-        map
-      end
+      sub_uri_projects.inject({}) { |map, p| map[p] = p.env.to_s; map }
     end
     
     def environment_map
