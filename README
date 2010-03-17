@@ -1,6 +1,12 @@
 Web Server Config Generator
 ============================================================================
 
+Installation:
+  # gem install web_server_config_generator
+  
+First Run:
+  # web_server_setup /path/to/projects_dir
+
 I got tired of setting up vhosts for new rails projects, and jumping through hoops to get vhosts for different environments working under the same webserver.  So, point this script at your projects directory and it'll generate all the necessary nginx config files for you to access all of your projects.
 
 Here's a rundown of how it works:
