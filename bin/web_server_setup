@@ -256,9 +256,8 @@ module WebServerSetup
         unless dir = $PROJECTS_DIRECTORY
           puts "It looks like this is the first time you've run me."
           puts 
-          if agree("setup #{@project_or_projects_dir} as your projects dir? [Y/n]") { |q| q.default = "Y"}
-            dir = @project_or_projects_dir
-          else
+          dir = @project_or_projects_dir || FileUtils.pwd
+          unless agree("setup #{dir} as your projects dir? [Y/n]") { |q| q.default = "Y"}
             puts "for your first run you'll need to supply your projects directory"
             exit
           end

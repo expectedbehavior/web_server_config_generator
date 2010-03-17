@@ -3,7 +3,7 @@ require 'yaml'
 require 'pathname'
 
 at_exit do
-  FileUtils.rm "tmp/coverage.data" if File.exist? "tmp/coverage.data"
+  FileUtils.rm File.join(File.expand_path(File.dirname(__FILE__)), "..", "tmp", "coverage.data") if File.exist? File.join(File.expand_path(File.dirname(__FILE__)), "..", "tmp", "coverage.data")
 end
 
 class TestWebServerConfigGenerator < Test::Unit::TestCase
@@ -26,10 +26,45 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
     $CONFIG_FILES_DIR = File.join($EXAMPLE_APPS_DIR, "web_server_files")
     FileUtils.rm_r $CONFIG_FILES_DIR if File.exist? $CONFIG_FILES_DIR
 
-    $CMD = File.join(File.dirname(__FILE__), "..", "bin", "web_server_setup")
-    $CMD = "rcov --aggregate tmp/coverage.data --exclude 'rcov,ghost' #{$CMD} --"
+    $CMD = File.join(File.expand_path(File.dirname(__FILE__)), "..", "bin", "web_server_setup")
+    $CMD = "rcov --aggregate #{File.join(File.expand_path(File.dirname(__FILE__)), "..", "tmp", "coverage.data")} --exclude 'rcov,ghost' #{$CMD} --"
     $CMD_NO_PROMPT_OPTIONS = "--no-add-hosts --no-restart-nginx -p #{$EXAMPLE_APPS_DIR}"
     $CMD_STANDARD_OPTIONS = "#{$CMD_NO_PROMPT_OPTIONS} -l #{$CONFIG_FILES_DIR} -p #{$EXAMPLE_APPS_DIR}"
+  end
+  
+  def test_first_run_no_args_prompts_to_make_cwd_the_projects_dir
+    example_apps_dir = File.expand_path($EXAMPLE_APPS_DIR)
+    FileUtils.cd example_apps_dir do
+      cmd = "#{$CMD} --no-add-hosts --no-restart-nginx -l #{$CONFIG_FILES_DIR}"
+      output = ""
+      IO.popen(cmd, "r+") do |f|
+        f.puts "n"
+        f.close_write
+        output << f.read
+      end
+      
+      expect_prompt = "setup #{example_apps_dir} as your projects dir"
+      assert_match /#{Regexp.escape(expect_prompt)}/, output
+        
+      expect_msg = "for your first run you'll need to supply your projects directory"
+      assert_match /#{Regexp.escape(expect_msg)}/, output
+    end
+  end
+  
+  def test_first_run_with_only_path_arg_promps_to_make_that_the_projects_dir_and_succeeds
+    cmd = "#{$CMD} --no-add-hosts --no-restart-nginx -l #{$CONFIG_FILES_DIR} #{$EXAMPLE_APPS_DIR}"
+    output = ""
+    IO.popen(cmd, "r+") do |f|
+      f.puts "y"
+      f.close_write
+      output << f.read
+    end
+    
+    expect_prompt = "setup #{File.expand_path($EXAMPLE_APPS_DIR)} as your projects dir"
+    assert_match /#{Regexp.escape(expect_prompt)}/, output
+      
+    expect_global_config = {:projects_dirs => [File.expand_path($EXAMPLE_APPS_DIR)]}
+    assert_equal expect_global_config, YAML.load_file(File.join($CONFIG_FILES_DIR, "global_config.yml"))
   end
   
   def test_conf_contents_has_been_changed_so_warning_is_generated_for_regular_app
