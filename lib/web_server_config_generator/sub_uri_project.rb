@@ -57,7 +57,7 @@ module WebServerConfigGenerator
     def generate_conf_file_contents(options)
       port = self.generate_port_from_env(options[:env])
 #       server_name = self.server_name_from_env(options[:env])
-      puts "fixme sub uri project gen"
+      puts "fixme abstracts conf template sub uri project gen"
       full_path_to_dir = File.expand_path "#{@web_config_generator.web_server_sub_uri_apps_dir}/#{projects_relative_project_path}"
       root = full_path_to_dir
       

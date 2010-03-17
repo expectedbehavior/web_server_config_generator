@@ -436,14 +436,14 @@ module WebServerSetup
       project_vhost_dir.mkpath
       project_env_vhost_filename = project_vhost_dir + "#{env}.conf"
       new_contents = p.generate_conf_file_contents(:env => env)
-      if project_env_vhost_filename.exist?
-        old_contents = project_env_vhost_filename.read
-        if old_contents != new_contents
-          puts "#{project_env_vhost_filename} exists, but doesn't match"
-        end
-      else
+#       if project_env_vhost_filename.exist?
+#         old_contents = project_env_vhost_filename.read
+#         if old_contents != new_contents
+#           puts "#{project_env_vhost_filename} exists, but doesn't match"
+#         end
+#       else
         project_env_vhost_filename.write new_contents
-      end
+#       end
       project_env_vhost_filename.expand_path
     end
     
