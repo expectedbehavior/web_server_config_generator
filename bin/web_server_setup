@@ -312,7 +312,11 @@ module WebServerSetup
           server_name_env_project_map[server_name][:projects] << p
         end
       end
-      server_name_env_project_map = server_name_env_project_map.select { |server_name, env_and_projects| env_and_projects[:projects].size > 1 }
+      server_name_env_project_map = server_name_env_project_map.select do |server_name, env_and_projects|
+        # more than one project with the same server_name
+        # don't count projects that evaluate to the same path
+        env_and_projects[:projects].map { |p| p.realpath }.uniq.size > 1
+      end
       @sub_uri_projects = server_name_env_project_map.map do |server_name, env_and_projects|
         WebServerConfigGenerator::SubUriProject.new(server_name, env_and_projects, self)
       end
