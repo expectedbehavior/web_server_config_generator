@@ -1,5 +1,53 @@
 module WebServerConfigGenerator
   class ProjectDirectory < Pathname
+    EXAMPLE_TEXT = <<-EXAMPLE
+# This YAML file describes a hash of the web server configuration for this project.
+# here's an example:
+#
+# --- 
+# :test: 
+#   :port: 46677
+#   :server_names: 
+#   - app-test.local
+# :development: 
+#   :port: 43273
+#   :relative_root_url: /foo
+#   :relative_root_url_root: true
+#   :server_names: 
+#   - sub-uri-app-foo-development.local
+#   - sub-uri-apps-development.local
+# :production: 
+#   :port: 46767
+#   :server_names: 
+#   - app-production.local
+#
+# Visiting app-test.local will load the app in the test environment.
+# Each vost that is configured will listen on all hostnames at the port specified, as well
+# as port 80 on all the hostnames specfied.  In the above example accessing
+# "http://localhost:46767" will go to the app in production mode, as well as
+# "http://app-production.local".
+#
+# You can also see how to setup relative_root_url apps here in the development section.
+# All apps that share a server name and have relative_root_url specified will be setup for relative root access.
+# Say, for example, another app had the following config:
+#
+# --- 
+# :development: 
+#   :port: 44893
+#   :relative_root_url: /bar
+#   :server_names: 
+#   - sub-uri-app-bar-development.local
+#   - sub-uri-apps-development.local
+#
+# Since these two apps share the server name "sub-uri-apps-development.local" and have relative_root_url
+# specified they will be configured so that accessing "http://sub-uri-apps-development.local/foo"
+# goes to the first app and accessing "http://sub-uri-apps-development.local/bar" goes to the second.
+# In addition, by specifying relative_root_url_root for the foo app you ca visit
+# "http://sub-uri-apps-development.local/" and you will access the foo app.
+
+
+EXAMPLE
+    
     attr_reader :original_realpath
     
     def initialize(dir, web_config_generator)
@@ -63,10 +111,17 @@ module WebServerConfigGenerator
           
           unless File.exist?(self.project_webconfig_path)
             save_project_webconfig config
+            add_example_comment_to_config
           end
           
           project_webconfig_proc(config)
         end
+    end
+    
+    def add_example_comment_to_config
+      old_contents = File.read(project_webconfig_path)
+      new_contents = EXAMPLE_TEXT + old_contents
+      File.open(project_webconfig_path, "w") { |f| f.write new_contents }
     end
     
     def save_project_webconfig(config)
