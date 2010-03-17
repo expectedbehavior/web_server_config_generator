@@ -57,9 +57,23 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   
   def test_ghost_manipulation
     # stub ghost interaction so we don't need to sudo
+    # mocking's a hassle while that code is in bin, this'll wait until it's broken out
   end
   
   def test_first_run_prompt_for_projects_dir
+    cmd = "#{$CMD} --no-add-hosts --no-restart-nginx -l #{$CONFIG_FILES_DIR} #{$EXAMPLE_APPS_DIR}"
+    output = ""
+    IO.popen(cmd, "r+") do |f|
+      f.puts "y"
+      f.close_write
+      output << f.read
+    end
+    
+    expect_prompt = "setup #{File.expand_path($EXAMPLE_APPS_DIR)} as your projects dir"
+    assert_match /#{Regexp.escape(expect_prompt)}/, output
+      
+    expect_global_config = {:projects_dirs => [File.expand_path($EXAMPLE_APPS_DIR)]}
+    assert_equal expect_global_config, YAML.load_file(File.join($CONFIG_FILES_DIR, "global_config.yml"))
   end
   
   def test_sub_uri_conf_references_generated_links_dir
