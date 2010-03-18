@@ -67,6 +67,10 @@ opts = OptionParser.new do |opts|
     $ADD_HOSTS = b
   end
 
+  opts.on("-d", "--delete-hosts", "delete ghost entries added by this script, requires ghost gem") do |b|
+    $DELETE_HOSTS = b
+  end
+
   opts.on("-r", "--[no-]restart-nginx", "restart nginx at the end") do |b|
     $RESTART_NGINX = b
   end
@@ -105,12 +109,14 @@ if $PRINT_HOSTS
   exit 0
 end
 
-
-web_server_setup.write_conf_files
-
 begin
   require 'ghost'
   puts
+  if $DELETE_HOSTS
+    puts "Deleting ghost entries..."
+    web_server_setup.delete_ghost_entries
+    exit 0
+  end
   if $ADD_HOSTS || ($ADD_HOSTS.nil? && agree("Setup ghost entries for projects? [Y/n]") { |q| q.default = "Y"})
     puts "Setting up ghost entries..."
     web_server_setup.add_ghost_entries
@@ -118,6 +124,8 @@ begin
 rescue LoadError
   puts "Couldn't load ghost so I won't add hostname entries for you.  Install the 'ghost' gem, or run me with a -n to get a list of hostnames to setup youself."
 end
+
+web_server_setup.write_conf_files
 
 pp web_server_setup.app_projects if $VERBOSE
 pp web_server_setup.sub_uri_projects if $VERBOSE

@@ -57,6 +57,14 @@ module WebServerConfigGenerator
       projects.map { |p| p.server_names }.flatten.uniq
     end
     
+    def delete_ghost_entries
+      global_config[:hosts].each do |host|
+        Host.delete host
+      end
+      global_config[:hosts] = []
+      save_global_config(global_config)
+    end
+    
     def add_ghost_entries
       current_hosts = Host.list
       already_correct = []
