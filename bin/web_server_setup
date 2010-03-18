@@ -43,18 +43,18 @@ opts = OptionParser.new do |opts|
     $ENVS << env
   end
 
-  opts.on("-n", "--list-hosts",
-          "list generated hostnames, useful for setting up the hosts file on your own") do
+  opts.on("-n", "--list-hosts", "list generated hostnames, useful for setting up the hosts file on your own") do
     $PRINT_HOSTS = true
   end
 
   opts.on("-c", "--create-web-server-files-dir",
-          "create web_server_files directory (useful the first time you run this script) in this case the supplied (or assumed) directory will be set as the 'projects' directory") do
+          "create web_server_files directory (useful the first time you run this script)",
+          "  in this case the supplied (or assumed) directory will be set as the",
+          "  'projects' directory") do
     $CREATE_WEB_SERVER_FILES_DIR = true
   end
 
-  opts.on("-p", "--projects-dir DIR",
-          "specify the directory containing all your projects") do |dir|
+  opts.on("-p", "--projects-dir DIR", "specify the directory containing all your projects") do |dir|
     $PROJECTS_DIRECTORY = dir
   end
 
@@ -63,38 +63,20 @@ opts = OptionParser.new do |opts|
     $WEB_SERVER_FILES_DIR = File.expand_path(path)
   end
 
-  opts.on("-a", "--[no-]add-hosts",
-          "add ghost entries for generated hostnames, requires ghost gem") do |b|
+  opts.on("-a", "--[no-]add-hosts", "add ghost entries for generated hostnames, requires ghost gem") do |b|
     $ADD_HOSTS = b
   end
 
-  opts.on("-r", "--[no-]restart-nginx",
-          "restart nginx at the end") do |b|
+  opts.on("-r", "--[no-]restart-nginx", "restart nginx at the end") do |b|
     $RESTART_NGINX = b
   end
 
-  opts.on("-v", "--verbose",
-          "verbose") do
+  opts.on("-v", "--verbose", "verbose") do
     $VERBOSE = true
   end
 
-  opts.on("-t", "--test-mode",
-          "test mode; do not modify the FS, just print messsages") do
-    $TEST_MODE = true
-  end
-
-#   # Optional argument; multi-line description.
-#   opts.on("-i", "--inplace [EXTENSION]",
-#           "Edit ARGV files in place",
-#           "  (make backup if EXTENSION supplied)") do |ext|
-#     options.inplace = true
-#     options.extension = ext || ''
-#     options.extension.sub!(/\A\.?(?=.)/, ".")  # Ensure extension begins with dot.
-#   end
-  
-#   # Boolean switch.
-#   opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
-#     options.verbose = v
+#   opts.on("-t", "--test-mode", "test mode; do not modify the FS, just print messsages") do
+#     $TEST_MODE = true
 #   end
 
   opts.separator ""
