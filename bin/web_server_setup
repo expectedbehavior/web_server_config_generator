@@ -122,7 +122,7 @@ rescue LoadError
 end
 
 pp web_server_setup.app_projects if $VERBOSE
-# pp web_server_setup.symlink_dirs if $VERBOSE
+pp web_server_setup.sub_uri_projects if $VERBOSE
 pp web_server_setup.environments if $VERBOSE
 
 web_server_setup.check_nginx_conf
