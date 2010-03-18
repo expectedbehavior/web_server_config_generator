@@ -82,8 +82,6 @@ opts = OptionParser.new do |opts|
   opts.separator ""
   opts.separator "Common options:"
 
-  # No argument, shows at tail.  This will print an options summary.
-  # Try it and see!
   opts.on_tail("-h", "--help", "Show this message") do
     puts opts
     exit
