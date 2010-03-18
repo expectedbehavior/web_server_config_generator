@@ -12,6 +12,7 @@ require 'yaml'
 $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 require 'web_server_config_generator'
 require 'web_server_config_generator/pathname'
+require 'web_server_config_generator/nginx_conf'
 require 'web_server_config_generator/generator'
 require 'web_server_config_generator/project_directory'
 require 'web_server_config_generator/sub_uri_project'

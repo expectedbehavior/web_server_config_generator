@@ -192,27 +192,11 @@ EXAMPLE
     def generate_conf_file_contents(options)
       env = options[:env].to_sym
       port = project_webconfig[env][:port]
-#       server_name_listen_lines = project_webconfig[env][:server_names].map { |h| "        listen #{h}:80;" }.join("\n")
-      server_name_listen_lines = "        listen 80;"
-#       server_names = project_webconfig[env][:server_names].map { |h| "#{h} *.#{h}" }.join(" ")
-      server_names = server_names_without_sub_uri_apps_for_env(env).map { |h| "#{h} *.#{h}" }.join(" ")
       full_path_to_dir = File.expand_path "#{@web_config_generator.web_server_links_dir}/#{env}/#{projects_relative_project_path}"
       root = "#{full_path_to_dir}/public"
-      <<-END
-    server {
-        listen #{port};
-#{server_name_listen_lines}
-        server_name #{server_names};
-        root #{root};
-        passenger_enabled on;
-
-        rails_env #{env};
-        rails_spawn_method conservative;
-        
-        client_max_body_size 100m;
-        client_body_timeout   300;
-    }
-END
+      
+      NginxConf.new(:port => port, :server_names => server_names_without_sub_uri_apps_for_env(env),
+                    :root => root, :environment => options[:env]).contents
     end
     
   end

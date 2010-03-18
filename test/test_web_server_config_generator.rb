@@ -113,7 +113,7 @@ class TestWebServerConfigGenerator < Test::Unit::TestCase
   
   def test_sub_uri_without_root_specified_generates_warning
     cmd = "#{$CMD} #{$CMD_STANDARD_OPTIONS}"
-    assert_match /Specify a symlink named 'root' that points/, `#{cmd}`
+    assert_match /Specify a root app in one of the configuration files/, `#{cmd}`
   end
   
   def test_ghost_manipulation
@@ -326,9 +326,11 @@ CONF
         root #{File.dirname(File.expand_path(__FILE__))}/test_apps/web_server_files/links/development/sub_uri_app_foo/public;
         passenger_enabled on;
 
+
         rails_env development;
         rails_spawn_method conservative;
         
+
         client_max_body_size 100m;
         client_body_timeout   300;
     }
