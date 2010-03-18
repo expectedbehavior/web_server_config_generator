@@ -74,6 +74,9 @@ module WebServerConfigGenerator
             puts "would have added #{server_name} -> 127.0.0.1"
           else
             added << Host.add(server_name)
+            global_config[:hosts] ||= []
+            global_config[:hosts] << server_name
+            save_global_config(global_config)
           end
         end
       end
