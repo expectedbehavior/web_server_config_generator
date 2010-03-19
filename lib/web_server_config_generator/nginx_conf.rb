@@ -2,7 +2,6 @@ module WebServerConfigGenerator
   class NginxConf
     def initialize(options)
       @options = options
-      puts options.inspect
       raise ArgumentError.new("Must supply port, server_names, root, and environment") unless
         options[:port] && options[:server_names] && options[:root] && options[:environment]
     end
