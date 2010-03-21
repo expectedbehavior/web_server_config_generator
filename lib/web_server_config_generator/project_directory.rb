@@ -77,11 +77,6 @@ EXAMPLE
       self.original_realpath == obj.original_realpath
     end
     alias :== :eql?
-    
-    def +(other)
-      other = self.class.new(other) unless self.class === other
-      self.class.new(plus(@path, other.to_s))
-    end
 
     def environments
       Dir[path.to_s + "/config/environments/*.rb"].map { |p| File.basename(p).gsub(/\.rb/, '') }
