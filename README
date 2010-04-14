@@ -4,15 +4,101 @@ Web Server Config Generator
 Installation:
   # gem install web_server_config_generator
   
-First Run:
+First Run (initialize global config):
   # web_server_setup /path/to/projects_dir
+
+Second Run (generate web server config files for all projects with a config):
+  # web_server_setup
+
+Generating a config file for a new project:
+  # web_server_setup /path/to/new_project
+
+
+Examples
+============================================================================
+
+$ pwd
+/Users/jason/projects
+$ ls
+twitter_live_demo
+
+# first run
+$ web_server_setup . # dot to specify current directory
+It looks like this is the first time you've run me.
+
+setup /Users/jason/projects as your projects dir? [Y/n]  |Y|
+
+setting up config dir
+
+Setup ghost entries for projects? [Y/n]  |Y|
+
+Setting up ghost entries...
+
+0 hosts were already setup correctly
+
+Warning: You'll need to make sure this line is in your nginx config, in the http block:
+  include /Users/jason/.webconfig/vhost/nginx/projects.conf;
+
+Warning: Couldn't find the following line in your nginx conf.  It should be in the http block.
+  server_names_hash_bucket_size 128;
+
+Restart nginx? [Y/n]  |Y|
+
+Restarting nginx...
+running: sudo nginx -s quit; sleep 1 && sudo /opt/nginx/sbin/nginx
+Password:
+
+# this generates twitter_live_demo/.webconfig.yml then generates the web server config files based on that
+$ web_server_setup twitter_live_demo
+
+Setup ghost entries for projects? [Y/n]  |Y|
+
+Setting up ghost entries...
+The following hostnames were added for 127.0.0.1:
+  twitter-live-demo-cucumber.local
+  twitter-live-demo-culerity_continuousintegration.local
+  twitter-live-demo-culerity_development.local
+  twitter-live-demo-development.local
+  twitter-live-demo-production.local
+  twitter-live-demo-test.local
+
+
+Restart nginx? [Y/n]  |Y|
+
+Restarting nginx...
+running: sudo killall nginx; sleep 1 && sudo /opt/nginx/sbin/nginx
+
+# regenrate all the server config files for the projects that have configs
+$ web_server_setup 
+
+Setup ghost entries for projects? [Y/n]  |Y|
+
+Setting up ghost entries...
+
+6 hosts were already setup correctly
+
+
+Restart nginx? [Y/n]  |Y|
+
+Restarting nginx...
+running: sudo killall nginx; sleep 1 && sudo /opt/nginx/sbin/nginx
+
+
+Relative Root Url Apps
+=======================================================
+
+Check out the example at the top of a newly genereated .webconfig.yml file for a project to see how you configure relative root apps.
+
+
+Motivation
+============================================================================
 
 I got tired of setting up vhosts for new rails projects, and jumping through hoops to get vhosts for different environments working under the same webserver.  So, point this script at your projects directory and it'll generate all the necessary nginx config files for you to access all of your projects.
 
 Here's a rundown of how it works:
 
 You've got a projects directory:
- /Users/me/projects
+ /Users/jason/projects
 
 Inside there you have a bunch of stuff, some of which are rails projects, maybe even some relative root url projects:
   projects/
@@ -20,12 +106,9 @@ Inside there you have a bunch of stuff, some of which are rails projects, maybe 
     shooter_mc_blasty_pants/
     lib_intent/
     drug_wars/
-    super_awesome_site_o_many_apps/
-      bb -> ../bouncy_balls/public
-      pew_pew -> ../shooter_mc_blasty_pants/public
 
 Now, the first time you run this script you'll tell it where your projects directory is by either cd'ing there, or passing the path as the first argument:
-  # web_server_setup /Users/me/projects
+  # web_server_setup /Users/jason/projects
 
 It'll prompt you to create an initial configuration including where your projects directory resides.  This is by default at $HOME/.webconfig.
 
@@ -40,17 +123,8 @@ The other piece of the puzzle this script takes care of is hostname resolution. 
 So, once all that's done you can reload nginx and fire up your trusty browser, visiting:
   http://drug-wars-development.local
 
-And whammy, blammy, it's your app.  Let's have another:
-  http://super-awesome-site-o-many-apps-production.local/shooter_mc_blasty_pants
-
-Wowie, zowie, relative root url stuff works too.
-
 But wait there's more, you're developing along, and you see something weird, and you want to pair up with bob to check it out.  It's a hassle to reproduce, but that's ok, you can just point bob to your box because we're also listening on a generated port number.  A quick look at the drug_wars config file (.webconfig.yml) and we see it is running in development on port 45397, so bob can just browse to your machine on that port and bingo, he's looking at the same data as you.
 
 Now you can point your tests at the test environment of an app and run your tests against nginx for speedier testing as well.
 
-And the next time you create a new project?  You can run this script from that project directory, or pass that directory as the first argument and we'll only generate the files for that project.  Of course you can also run from, or pass in, your projects directory again and we'll generate anything that isn't already generated, as well as show you things that have changed.
-
-Relative Root Url Apps
-=======================================================
-Check out the example at the top of a newly genereated .webconfig.yml file for a project to see how you configure relative root apps.
+And the next time you create a new project?  You can run this script and pass that directory as the first argument and we'll generate our config for that project, then the web server config files.
