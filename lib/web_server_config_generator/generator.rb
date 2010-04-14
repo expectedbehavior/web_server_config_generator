@@ -207,7 +207,7 @@ module WebServerConfigGenerator
       puts
       if $RESTART_NGINX || ($RESTART_NGINX.nil? && agree("Restart nginx? [Y/n]") { |q| q.default = "Y"})
         puts "Restarting nginx..."
-        cmd = "sudo killall nginx; sleep 1 && sudo #{nginx}"
+        cmd = "sudo #{nginx} -s quit; sleep 1 && sudo #{nginx}"
         puts "running: #{cmd}"
         system cmd
       end
